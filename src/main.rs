@@ -3,7 +3,7 @@ use std::{
     io::{Write, stdin, stdout},
 };
 
-use default_env::{ADDITION, SUBTRACTION};
+use default_env::{ADDITION, DIVISION, MULTIPLICATION, SUBTRACTION};
 use reader::{DataType, DataTypeHashable, ParseError, Reader, get_regex, tokenize};
 
 mod default_env;
@@ -94,6 +94,8 @@ fn create_repl_env() -> HashMap<String, impl Fn(&[DataType]) -> Result<DataType,
         HashMap::new();
     repl_env.insert(ADDITION.id.to_string(), Box::new(ADDITION.func));
     repl_env.insert(SUBTRACTION.id.to_string(), Box::new(SUBTRACTION.func));
+    repl_env.insert(DIVISION.id.to_string(), Box::new(DIVISION.func));
+    repl_env.insert(MULTIPLICATION.id.to_string(), Box::new(MULTIPLICATION.func));
 
     repl_env
 }
