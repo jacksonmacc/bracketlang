@@ -23,30 +23,29 @@ pub struct ParseError {
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
-pub enum DataTypePrimitive {
-    Number(u64),
+pub enum DataTypeHashable {
+    Number(u128),
     String(String),
-    Bool(bool),
-    Nil(),
 }
 
 #[derive(Clone)]
 pub enum DataType {
-    Primitive(DataTypePrimitive),
+    Nil(),
+    Hashable(DataTypeHashable),
     Node(Vec<DataType>),
     Comment(),
     List(Vec<DataType>),
-    Dictionary(HashMap<DataTypePrimitive, DataType>),
+    Dictionary(HashMap<DataTypeHashable, DataType>),
     Symbol(String),
+    Bool(bool),
+    Float(f64),
 }
 
-impl std::fmt::Debug for DataTypePrimitive {
+impl std::fmt::Debug for DataTypeHashable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            DataTypePrimitive::Number(number) => write!(f, "{}", number),
-            DataTypePrimitive::String(string) => write!(f, "\"{}\"", string),
-            DataTypePrimitive::Bool(value) => write!(f, "{}", value),
-            DataTypePrimitive::Nil() => write!(f, "nil"),
+            DataTypeHashable::Number(number) => write!(f, "{}", number),
+            DataTypeHashable::String(string) => write!(f, "\"{}\"", string),
         }
     }
 }
@@ -54,7 +53,7 @@ impl std::fmt::Debug for DataTypePrimitive {
 impl std::fmt::Debug for DataType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            DataType::Primitive(primitive) => write!(f, "{:?}", primitive),
+            DataType::Hashable(primitive) => write!(f, "{:?}", primitive),
             DataType::Node(vector) => write!(
                 f,
                 "({})",
@@ -83,6 +82,9 @@ impl std::fmt::Debug for DataType {
             ),
             DataType::Symbol(symbol) => write!(f, "{}", symbol),
             DataType::Comment() => write!(f, ""),
+            DataType::Nil() => write!(f, "nil"),
+            DataType::Bool(value) => write!(f, "{}", value),
+            DataType::Float(float) => write!(f, "{}", float),
         }
     }
 }
@@ -150,7 +152,7 @@ impl Reader {
     }
 
     pub fn read_dictionary(&mut self, end_character: char) -> Result<DataType, ParseError> {
-        let mut children: HashMap<DataTypePrimitive, DataType> = HashMap::new();
+        let mut children: HashMap<DataTypeHashable, DataType> = HashMap::new();
 
         loop {
             let token = match self.peek() {
@@ -167,7 +169,7 @@ impl Reader {
             }
 
             let child1 = match self.read() {
-                Ok(DataType::Primitive(p)) => p,
+                Ok(DataType::Hashable(p)) => p,
                 Ok(_) => {
                     return Err(ParseError {
                         msg: "Cannot use non-primitive as dictionary key!".to_string(),
@@ -202,25 +204,27 @@ impl Reader {
             });
         };
 
-        if let Ok(number) = token.parse::<u64>() {
-            Ok(DataType::Primitive(DataTypePrimitive::Number(number)))
-        } else {
+        if let Ok(number) = token.parse::<u128>() {
+            Ok(DataType::Hashable(DataTypeHashable::Number(number)))
+        } else if let Ok(number) = token.parse::<f64>() {
+            Ok(DataType::Float(number))
+        }else {
             let Some(first_char) = token.chars().nth(0) else {
                 return Err(ParseError {
                     msg: "Unexpected empty atom!".to_string(),
                 });
             };
             match token.as_str() {
-                "false" => Ok(DataType::Primitive(DataTypePrimitive::Bool(false))),
-                "true" => Ok(DataType::Primitive(DataTypePrimitive::Bool(true))),
-                "nil" => Ok(DataType::Primitive(DataTypePrimitive::Nil())),
+                "false" => Ok(DataType::Bool(false)),
+                "true" => Ok(DataType::Bool(true)),
+                "nil" => Ok(DataType::Nil()),
                 _ if first_char == '"' => {
                     let converted = token
                         .replace("\\n", "\n")
                         .replace("\\\\", "\\")
                         .replace("\\\"", "\"");
                     let quotes_removed = &converted[1..converted.len() - 1];
-                    Ok(DataType::Primitive(DataTypePrimitive::String(
+                    Ok(DataType::Hashable(DataTypeHashable::String(
                         quotes_removed.to_string(),
                     )))
                 }

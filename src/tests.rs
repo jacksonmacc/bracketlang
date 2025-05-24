@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::{
     create_repl_env, eval, read,
-    reader::{DataType, DataTypePrimitive, get_regex, tokenize},
+    reader::{DataType, DataTypeHashable, get_regex, tokenize},
 };
 
 const FIB_TEST: &str = "(defun fib (n)
@@ -104,8 +104,8 @@ fn test_parsing_dict() {
 #[test]
 fn test_eval_simple_addition() {
     let result = eval(&read("(+ 3 2)".to_string()).unwrap(), &create_repl_env()).unwrap();
-    if let DataType::Primitive(num_result) = result {
-        assert_eq!(num_result, DataTypePrimitive::Number(5));
+    if let DataType::Hashable(num_result) = result {
+        assert_eq!(num_result, DataTypeHashable::Number(5));
     } else {
         assert!(false);
     }
