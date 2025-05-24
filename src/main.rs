@@ -88,28 +88,55 @@ struct EvalError {
 }
 
 fn create_repl_env() -> HashMap<String, impl Fn(&[DataType]) -> Result<DataType, EvalError>> {
-    let mut repl_env = HashMap::new();
-    repl_env.insert("+".to_string(), |values: &[DataType]| {
-        if values.len() > 1 {
-            let mut total = 0;
-            for value in values {
-                match value {
-                    DataType::Primitive(DataTypePrimitive::Number(num)) => total += num,
-                    _ => {
-                        return Err(EvalError {
-                            msg: "Invalid type for addition!".to_string(),
-                        });
+    let mut repl_env: HashMap<String, Box<dyn Fn(&[DataType]) -> Result<DataType, EvalError>>> =
+        HashMap::new();
+    repl_env.insert(
+        "+".to_string(),
+        Box::new(|values: &[DataType]| {
+            if values.len() > 1 {
+                let mut total = 0;
+                for value in values {
+                    match value {
+                        DataType::Primitive(DataTypePrimitive::Number(num)) => total += num,
+                        _ => {
+                            return Err(EvalError {
+                                msg: "Invalid types for addition!".to_string(),
+                            });
+                        }
                     }
                 }
-            }
 
-            Ok(DataType::Primitive(DataTypePrimitive::Number(total)))
-        } else {
-            Err(EvalError {
-                msg: "Not enough arguments to \"+\"".to_string(),
-            })
-        }
-    });
+                Ok(DataType::Primitive(DataTypePrimitive::Number(total)))
+            } else {
+                Err(EvalError {
+                    msg: "Not enough arguments for \"+\"".to_string(),
+                })
+            }
+        }),
+    );
+    repl_env.insert(
+        "-".to_string(),
+        Box::new(|values: &[DataType]| {
+            if values.len() == 2 {
+                if let (
+                    Some(DataType::Primitive(DataTypePrimitive::Number(num1))),
+                    Some(DataType::Primitive(DataTypePrimitive::Number(num2))),
+                ) = (values.get(0), values.get(1))
+                {
+                    Ok(DataType::Primitive(DataTypePrimitive::Number(num1 - num2)))
+                } else {
+                    Err(EvalError {
+                        msg: "Incorrect types for subtraction!".to_string(),
+                    })
+                }
+            } else {
+                Err(EvalError {
+                    msg: "Not enough arguments for \"+\"".to_string(),
+                })
+            }
+        }),
+    );
+
     repl_env
 }
 
