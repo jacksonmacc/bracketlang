@@ -111,13 +111,13 @@ impl Reader {
 
         if current == "(" {
             self.next();
-            self.read_list(')')
+            self.read_list(")".to_string())
         } else {
             self.read_atom()
         }
     }
 
-    pub fn read_list(&mut self, end_character: char) -> Result<DataType, ParseError> {
+    pub fn read_list(&mut self, end_character: String) -> Result<DataType, ParseError> {
         let mut children = vec![];
 
         loop {
@@ -130,28 +130,21 @@ impl Reader {
                 }
             };
 
-            if token.chars().nth(0) == Some(end_character) {
+            if token == end_character {
                 break;
             }
 
-            let child = match self.read() {
-                Ok(c) => c,
-                Err(_) => {
-                    return Err(ParseError {
-                        msg: "Couldn't find closing bracket".to_string(),
-                    });
-                }
-            };
-            children.push(child);
+            children.push(self.read()?);
         }
         self.next();
-        if end_character == ']' {
+        if end_character == ")" {
             return Ok(DataType::List(children));
+        } else {
+            return Ok(DataType::Node(children));
         }
-        return Ok(DataType::Node(children));
     }
 
-    pub fn read_dictionary(&mut self, end_character: char) -> Result<DataType, ParseError> {
+    pub fn read_dictionary(&mut self, end_character: String) -> Result<DataType, ParseError> {
         let mut children: HashMap<DataTypeHashable, DataType> = HashMap::new();
 
         loop {
@@ -164,7 +157,7 @@ impl Reader {
                 }
             };
 
-            if token.chars().nth(0) == Some(end_character) {
+            if token == end_character {
                 break;
             }
 
@@ -172,7 +165,7 @@ impl Reader {
                 Ok(DataType::Hashable(p)) => p,
                 Ok(_) => {
                     return Err(ParseError {
-                        msg: "Cannot use non-primitive as dictionary key!".to_string(),
+                        msg: "Cannot use non-hashable as dictionary key!".to_string(),
                     });
                 }
                 Err(_) => {
@@ -182,14 +175,7 @@ impl Reader {
                 }
             };
 
-            let child2 = match self.read() {
-                Ok(c) => c,
-                Err(_) => {
-                    return Err(ParseError {
-                        msg: "Couldn't find closing bracket".to_string(),
-                    });
-                }
-            };
+            let child2 = self.read()?;
 
             children.insert(child1, child2);
         }
@@ -208,7 +194,7 @@ impl Reader {
             Ok(DataType::Hashable(DataTypeHashable::Number(number)))
         } else if let Ok(number) = token.parse::<f64>() {
             Ok(DataType::Float(number))
-        }else {
+        } else {
             let Some(first_char) = token.chars().nth(0) else {
                 return Err(ParseError {
                     msg: "Unexpected empty atom!".to_string(),
@@ -229,8 +215,8 @@ impl Reader {
                     )))
                 }
                 _ if first_char == ';' => Ok(DataType::Comment()),
-                _ if first_char == '[' => self.read_list(']'),
-                _ if first_char == '{' => self.read_dictionary('}'),
+                _ if first_char == '[' => self.read_list("]".to_string()),
+                _ if first_char == '{' => self.read_dictionary("}".to_string()),
                 _ => Ok(DataType::Symbol(token)),
             }
         }

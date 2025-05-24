@@ -115,6 +115,8 @@ fn main() {
 
         // Recieved EOF
         if user_input_result == 0 {
+            println!();
+            println!("Quitting...");
             break;
         }
 
