@@ -22,7 +22,7 @@ pub struct ParseError {
     pub msg: String,
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub enum DataTypePrimitive {
     Number(u64),
     String(String),
@@ -30,6 +30,7 @@ pub enum DataTypePrimitive {
     Nil(),
 }
 
+#[derive(Clone)]
 pub enum DataType {
     Primitive(DataTypePrimitive),
     Node(Vec<DataType>),
@@ -219,7 +220,9 @@ impl Reader {
                         .replace("\\\\", "\\")
                         .replace("\\\"", "\"");
                     let quotes_removed = &converted[1..converted.len() - 1];
-                    Ok(DataType::Primitive(DataTypePrimitive::String(quotes_removed.to_string())))
+                    Ok(DataType::Primitive(DataTypePrimitive::String(
+                        quotes_removed.to_string(),
+                    )))
                 }
                 _ if first_char == ';' => Ok(DataType::Comment()),
                 _ if first_char == '[' => self.read_list(']'),

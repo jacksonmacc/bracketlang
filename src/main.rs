@@ -1,6 +1,9 @@
-use std::io::{Write, stdin, stdout};
+use std::{
+    collections::HashMap,
+    io::{Write, stdin, stdout},
+};
 
-use reader::{DataType, ParseError, Reader, get_regex, tokenize};
+use reader::{DataType, DataTypePrimitive, ParseError, Reader, get_regex, tokenize};
 
 mod reader;
 
@@ -13,26 +16,103 @@ fn read(input: String) -> Result<DataType, ParseError> {
     reader.read()
 }
 
-fn eval(input: DataType) -> DataType {
-    input
+fn eval(
+    ast: &DataType,
+    repl_env: &HashMap<String, impl Fn(&[DataType]) -> Result<DataType, EvalError>>,
+) -> Result<DataType, EvalError> {
+    match ast {
+        DataType::Node(children) => {
+            let evaluated: Vec<DataType> = children
+                .iter()
+                .map(|child| eval(child, repl_env))
+                .collect::<Result<_, EvalError>>()?;
+            if let Some(DataType::Symbol(sym)) = evaluated.first() {
+                let Some(func) = repl_env.get(sym) else {
+                    return Err(EvalError {
+                        msg: format!("Couldn't find function {}", sym),
+                    });
+                };
+                func(&evaluated[1..])
+            } else {
+                Err(EvalError {
+                    msg: "Created function without name!".to_string(),
+                })
+            }
+        }
+        DataType::List(list) => {
+            let evaluated: Vec<DataType> = list
+                .iter()
+                .map(|child| eval(child, repl_env))
+                .collect::<Result<_, EvalError>>()?;
+            Ok(DataType::List(evaluated))
+        }
+        DataType::Dictionary(dict) => {
+            let evaluated: HashMap<DataTypePrimitive, DataType> = dict
+                .iter()
+                .map(|child| match eval(child.1, repl_env) {
+                    Ok(result) => Ok((child.0.clone(), result)),
+                    Err(err) => Err(err),
+                })
+                .collect::<Result<HashMap<DataTypePrimitive, DataType>, EvalError>>()?;
+            Ok(DataType::Dictionary(evaluated))
+        }
+        _ => Ok(ast.clone()),
+    }
 }
 
 fn print(input: DataType) -> String {
     format!("{:?}", input)
 }
 
-fn rep(input: String) -> String {
-    let read_result = match read(input) {
+fn rep(
+    input: String,
+    repl_env: &HashMap<String, impl Fn(&[DataType]) -> Result<DataType, EvalError>>,
+) -> String {
+    let ast = match read(input) {
         Ok(r) => r,
         Err(e) => return e.msg,
     };
 
-    let eval_result = eval(read_result);
+    let eval_result = match eval(&ast, repl_env) {
+        Ok(r) => r,
+        Err(e) => return e.msg,
+    };
     let print_result = print(eval_result);
     print_result
 }
 
+struct EvalError {
+    msg: String,
+}
+
+fn create_repl_env() -> HashMap<String, impl Fn(&[DataType]) -> Result<DataType, EvalError>> {
+    let mut repl_env = HashMap::new();
+    repl_env.insert("+".to_string(), |values: &[DataType]| {
+        if values.len() > 1 {
+            let mut total = 0;
+            for value in values {
+                match value {
+                    DataType::Primitive(DataTypePrimitive::Number(num)) => total += num,
+                    _ => {
+                        return Err(EvalError {
+                            msg: "Invalid type for addition!".to_string(),
+                        });
+                    }
+                }
+            }
+
+            Ok(DataType::Primitive(DataTypePrimitive::Number(total)))
+        } else {
+            Err(EvalError {
+                msg: "Not enough arguments to \"+\"".to_string(),
+            })
+        }
+    });
+    repl_env
+}
+
 fn main() {
+    let repl_env = create_repl_env();
     loop {
         print!("user> ");
         stdout()
@@ -49,6 +129,6 @@ fn main() {
             break;
         }
 
-        println!("{}", rep(user_input))
+        println!("{}", rep(user_input, &repl_env))
     }
 }
