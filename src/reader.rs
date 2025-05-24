@@ -26,6 +26,9 @@ pub enum DataType {
     Node(Vec<DataType>),
     Number(u64),
     Symbol(String),
+    String(String),
+    Bool(bool),
+    Nil(),
 }
 
 impl std::fmt::Debug for DataType {
@@ -42,6 +45,9 @@ impl std::fmt::Debug for DataType {
                     .collect::<Vec<String>>()
                     .join(" ")
             ),
+            DataType::String(string) => write!(f, "\"{}\"", string),
+            DataType::Bool(value) => write!(f, "{}", value),
+            DataType::Nil() => write!(f, "nil"),
         }
     }
 }
@@ -62,7 +68,7 @@ impl Reader {
     pub fn read(&mut self) -> Result<DataType, ParseError> {
         let Some(current) = self.peek() else {
             return Err(ParseError {
-                msg: "Ran out of tokens".to_string(),
+                msg: "Reading empty string".to_string(),
             });
         };
 
@@ -82,7 +88,7 @@ impl Reader {
                 Some(t) => t,
                 None => {
                     return Err(ParseError {
-                        msg: "Couldn't find closing bracket!".to_string(),
+                        msg: "Couldn't find closing bracket".to_string(),
                     });
                 }
             };
@@ -90,7 +96,16 @@ impl Reader {
             if token == ")" {
                 break;
             }
-            children.push(self.read()?);
+
+            let child = match self.read() {
+                Ok(c) => c,
+                Err(_) => {
+                    return Err(ParseError {
+                        msg: "Couldn't find closing bracket".to_string(),
+                    });
+                }
+            };
+            children.push(child);
         }
         self.next();
         return Ok(DataType::Node(children));
@@ -106,7 +121,22 @@ impl Reader {
         if let Ok(number) = token.parse::<u64>() {
             Ok(DataType::Number(number))
         } else {
-            Ok(DataType::Symbol(token))
+            let Some(first_char) = token.chars().nth(0) else {
+                return Err(ParseError {
+                    msg: "Unexpected empty atom!".to_string(),
+                });
+            };
+            match token.as_str() {
+                "false" => Ok(DataType::Bool(false)),
+                "true" => Ok(DataType::Bool(true)),
+                "nil" => Ok(DataType::Nil()),
+                _ if first_char == '"' => {
+                    let converted = token.replace("\\n", "\n").replace("\\\\", "\\").replace("\\\"", "\"");
+                    let quotes_removed = &converted[1..converted.len() - 1];
+                    Ok(DataType::String(quotes_removed.to_string()))
+                },
+                _  => Ok(DataType::Symbol(token)),
+            }
         }
     }
 }
