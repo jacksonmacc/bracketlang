@@ -26,10 +26,11 @@ fn eval(
                 .iter()
                 .map(|child| eval(child, repl_env))
                 .collect::<Result<_, EvalError>>()?;
+
             if let Some(DataType::Symbol(sym)) = evaluated.first() {
                 let Some(func) = repl_env.get(sym) else {
                     return Err(EvalError {
-                        msg: format!("Couldn't find function {}", sym),
+                        msg: format!("Couldn't find symbol \"{}\"", sym),
                     });
                 };
                 func(&evaluated[1..])
@@ -81,6 +82,7 @@ fn rep(
     print_result
 }
 
+#[derive(Debug)]
 struct EvalError {
     msg: String,
 }
