@@ -24,7 +24,7 @@ pub struct ParseError {
 
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub enum DataTypeHashable {
-    Number(u128),
+    Number(i128),
     String(String),
 }
 
@@ -204,7 +204,7 @@ impl Reader {
             });
         };
 
-        if let Ok(number) = token.parse::<u128>() {
+        if let Ok(number) = token.parse::<i128>() {
             Ok(DataType::Hashable(DataTypeHashable::Number(number)))
         } else if let Ok(number) = token.parse::<f64>() {
             Ok(DataType::Float(number))

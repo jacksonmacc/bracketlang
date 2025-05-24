@@ -64,7 +64,7 @@ pub const ADDITION: Symbol = Symbol {
             }
         } else {
             Err(EvalError {
-                msg: "Not enough arguments for \"+\"".to_string(),
+                msg: "Not enough arguments for addition".to_string(),
             })
         }
     },
@@ -82,7 +82,7 @@ pub const MULTIPLICATION: Symbol = Symbol {
                             DataType::Hashable(DataTypeHashable::Number(num)) => total *= num,
                             _ => {
                                 return Err(EvalError {
-                                    msg: "Invalid types for addition!".to_string(),
+                                    msg: "Invalid types for mutliplication!".to_string(),
                                 });
                             }
                         }
@@ -97,7 +97,7 @@ pub const MULTIPLICATION: Symbol = Symbol {
                             DataType::Float(float) => total *= float,
                             _ => {
                                 return Err(EvalError {
-                                    msg: "Invalid types for addition!".to_string(),
+                                    msg: "Invalid types for multiplication!".to_string(),
                                 });
                             }
                         }
@@ -106,12 +106,12 @@ pub const MULTIPLICATION: Symbol = Symbol {
                     Ok(DataType::Float(total))
                 }
                 None | Some(_) => Err(EvalError {
-                    msg: "Invalid types for addition".to_string(),
+                    msg: "Invalid types for multiplication".to_string(),
                 }),
             }
         } else {
             Err(EvalError {
-                msg: "Not enough arguments for \"+\"".to_string(),
+                msg: "Not enough arguments for multiplication".to_string(),
             })
         }
     },
@@ -137,7 +137,7 @@ pub const SUBTRACTION: Symbol = Symbol {
             }
         } else {
             Err(EvalError {
-                msg: "Not enough arguments for \"+\"".to_string(),
+                msg: "Incorrect number of arguments for subtraction".to_string(),
             })
         }
     },
@@ -158,12 +158,12 @@ pub const DIVISION: Symbol = Symbol {
                 }
 
                 _ => Err(EvalError {
-                    msg: "Incorrect types for subtraction!".to_string(),
+                    msg: "Incorrect types for division".to_string(),
                 }),
             }
         } else {
             Err(EvalError {
-                msg: "Not enough arguments for \"+\"".to_string(),
+                msg: "Incorrect number of arguments for division".to_string(),
             })
         }
     },

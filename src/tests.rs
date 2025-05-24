@@ -113,3 +113,146 @@ fn test_eval_simple_addition() {
         assert!(false);
     }
 }
+
+#[test]
+fn test_eval_simple_addition_with_strings() {
+    let result = eval(
+        &read("(+ \"Hello, \" \"World!\")".to_string()).unwrap(),
+        &create_repl_env(),
+    )
+    .unwrap();
+    if let DataType::Hashable(num_result) = result {
+        assert_eq!(
+            num_result,
+            DataTypeHashable::String("Hello, World!".to_string())
+        );
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn test_eval_addition_with_negatives() {
+    let result = eval(&read("(+ 3 -4)".to_string()).unwrap(), &create_repl_env()).unwrap();
+    if let DataType::Hashable(num_result) = result {
+        assert_eq!(num_result, DataTypeHashable::Number(-1));
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn test_eval_addition_with_floats() {
+    let result = eval(
+        &read("(+ 3.0 -4.5)".to_string()).unwrap(),
+        &create_repl_env(),
+    )
+    .unwrap();
+    if let DataType::Float(float) = result {
+        assert_eq!(float, -1.5);
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn test_eval_simple_subtraction() {
+    let result = eval(&read("(- 3 2)".to_string()).unwrap(), &create_repl_env()).unwrap();
+    if let DataType::Hashable(num_result) = result {
+        assert_eq!(num_result, DataTypeHashable::Number(1));
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn test_eval_subtraction_with_negatives() {
+    let result = eval(&read("(- 3 -4)".to_string()).unwrap(), &create_repl_env()).unwrap();
+    if let DataType::Hashable(num_result) = result {
+        assert_eq!(num_result, DataTypeHashable::Number(7));
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn test_eval_subtraction_with_floats() {
+    let result = eval(
+        &read("(- 2.5 3.5)".to_string()).unwrap(),
+        &create_repl_env(),
+    )
+    .unwrap();
+    if let DataType::Float(float) = result {
+        assert_eq!(float, -1.0);
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn test_eval_simple_multiplication() {
+    let result = eval(&read("(* 3 2)".to_string()).unwrap(), &create_repl_env()).unwrap();
+    if let DataType::Hashable(num_result) = result {
+        assert_eq!(num_result, DataTypeHashable::Number(6));
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn test_eval_multiplication_with_negatives() {
+    let result = eval(&read("(* 3 -4)".to_string()).unwrap(), &create_repl_env()).unwrap();
+    if let DataType::Hashable(num_result) = result {
+        assert_eq!(num_result, DataTypeHashable::Number(-12));
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn test_eval_multiplication_with_floats() {
+    let result = eval(
+        &read("(* 3.0 1.5)".to_string()).unwrap(),
+        &create_repl_env(),
+    )
+    .unwrap();
+    if let DataType::Float(float) = result {
+        assert_eq!(float, 4.5);
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn test_eval_simple_division() {
+    let result = eval(&read("(/ 4 2)".to_string()).unwrap(), &create_repl_env()).unwrap();
+    if let DataType::Hashable(num_result) = result {
+        assert_eq!(num_result, DataTypeHashable::Number(2));
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn test_eval_division_with_negatives() {
+    let result = eval(&read("(/ -18 -6)".to_string()).unwrap(), &create_repl_env()).unwrap();
+    if let DataType::Hashable(num_result) = result {
+        assert_eq!(num_result, DataTypeHashable::Number(3));
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn test_eval_division_with_floats() {
+    let result = eval(
+        &read("(/ 2.25 1.5)".to_string()).unwrap(),
+        &create_repl_env(),
+    )
+    .unwrap();
+    if let DataType::Float(float) = result {
+        assert_eq!(float, 1.5);
+    } else {
+        assert!(false);
+    }
+}
