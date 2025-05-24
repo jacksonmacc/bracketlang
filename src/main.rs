@@ -3,8 +3,10 @@ use std::{
     io::{Write, stdin, stdout},
 };
 
+use default_env::{ADDITION, SUBTRACTION};
 use reader::{DataType, DataTypeHashable, ParseError, Reader, get_regex, tokenize};
 
+mod default_env;
 mod reader;
 
 #[cfg(test)]
@@ -90,91 +92,8 @@ struct EvalError {
 fn create_repl_env() -> HashMap<String, impl Fn(&[DataType]) -> Result<DataType, EvalError>> {
     let mut repl_env: HashMap<String, Box<dyn Fn(&[DataType]) -> Result<DataType, EvalError>>> =
         HashMap::new();
-    repl_env.insert(
-        "+".to_string(),
-        Box::new(|values: &[DataType]| {
-            if values.len() > 1 {
-                match values.first() {
-                    Some(DataType::Hashable(DataTypeHashable::Number(_))) => {
-                        let mut total = 0;
-                        for value in values {
-                            match value {
-                                DataType::Hashable(DataTypeHashable::Number(num)) => total += num,
-                                _ => {
-                                    return Err(EvalError {
-                                        msg: "Invalid types for addition!".to_string(),
-                                    });
-                                }
-                            }
-                        }
-
-                        Ok(DataType::Hashable(DataTypeHashable::Number(total)))
-                    }
-                    Some(DataType::Hashable(DataTypeHashable::String(_))) => {
-                        let mut total = String::new();
-                        for value in values {
-                            match value {
-                                DataType::Hashable(DataTypeHashable::String(string)) => total += string,
-                                _ => {
-                                    return Err(EvalError {
-                                        msg: "Invalid types for addition!".to_string(),
-                                    });
-                                }
-                            }
-                        }
-
-                        Ok(DataType::Hashable(DataTypeHashable::String(total)))
-                    }
-                    Some(DataType::Float(_)) => {
-                        let mut total = 0.0;
-                        for value in values {
-                            match value {
-                                DataType::Float(float) => {
-                                    total += float
-                                }
-                                _ => {
-                                    return Err(EvalError {
-                                        msg: "Invalid types for addition!".to_string(),
-                                    });
-                                }
-                            }
-                        }
-
-                        Ok(DataType::Float(total))
-                    }
-                    None | Some(_) => Err(EvalError {
-                        msg: "Invalid types for addition".to_string(),
-                    }),
-                }
-            } else {
-                Err(EvalError {
-                    msg: "Not enough arguments for \"+\"".to_string(),
-                })
-            }
-        }),
-    );
-    repl_env.insert(
-        "-".to_string(),
-        Box::new(|values: &[DataType]| {
-            if values.len() == 2 {
-                if let (
-                    Some(DataType::Hashable(DataTypeHashable::Number(num1))),
-                    Some(DataType::Hashable(DataTypeHashable::Number(num2))),
-                ) = (values.get(0), values.get(1))
-                {
-                    Ok(DataType::Hashable(DataTypeHashable::Number(num1 - num2)))
-                } else {
-                    Err(EvalError {
-                        msg: "Incorrect types for subtraction!".to_string(),
-                    })
-                }
-            } else {
-                Err(EvalError {
-                    msg: "Not enough arguments for \"+\"".to_string(),
-                })
-            }
-        }),
-    );
+    repl_env.insert(ADDITION.id.to_string(), Box::new(ADDITION.func));
+    repl_env.insert(SUBTRACTION.id.to_string(), Box::new(SUBTRACTION.func));
 
     repl_env
 }

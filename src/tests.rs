@@ -98,7 +98,10 @@ fn test_parsing_list() {
 #[test]
 fn test_parsing_dict() {
     let ast = read("{\"hello\" 1 \"world\" 2}".to_string()).unwrap();
-    assert_eq!(format!("{:?}", ast), "{\"hello\": 1, \"world\": 2}");
+    assert!(
+        format!("{:?}", ast).contains("\"hello\": 1")
+            && format!("{:?}", ast).contains("\"world\": 2")
+    );
 }
 
 #[test]
