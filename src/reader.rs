@@ -1,5 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 
+use DataType::*;
+use DataTypeHashable::*;
 use regex::Regex;
 
 /*
@@ -14,18 +16,18 @@ pub const REGEX_TOKEN_EXP: &str =
     r#"[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)"#;
 
 pub struct Reader {
-    tokens: VecDeque<String>,
+    tokens: VecDeque<std::string::String>,
 }
 
 #[derive(Debug)]
 pub struct ParseError {
-    pub msg: String,
+    pub msg: std::string::String,
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub enum DataTypeHashable {
     Number(i128),
-    String(String),
+    String(std::string::String),
 }
 
 #[derive(Clone)]
@@ -36,7 +38,7 @@ pub enum DataType {
     Comment(),
     List(Vec<DataType>),
     Dictionary(HashMap<DataTypeHashable, DataType>),
-    Symbol(String),
+    Symbol(std::string::String),
     Bool(bool),
     Float(f64),
 }
@@ -44,8 +46,8 @@ pub enum DataType {
 impl std::fmt::Debug for DataTypeHashable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            DataTypeHashable::Number(number) => write!(f, "{}", number),
-            DataTypeHashable::String(string) => write!(f, "\"{}\"", string),
+            Number(number) => write!(f, "{}", number),
+            String(string) => write!(f, "\"{}\"", string),
         }
     }
 }
@@ -53,52 +55,52 @@ impl std::fmt::Debug for DataTypeHashable {
 impl std::fmt::Debug for DataType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            DataType::Hashable(primitive) => write!(f, "{:?}", primitive),
-            DataType::Node(vector) => write!(
+            Hashable(primitive) => write!(f, "{:?}", primitive),
+            Node(vector) => write!(
                 f,
                 "({})",
                 vector
                     .iter()
                     .map(|data_type| format!("{:?}", data_type))
-                    .collect::<Vec<String>>()
+                    .collect::<Vec<std::string::String>>()
                     .join(" ")
             ),
-            DataType::List(vector) => write!(
+            List(vector) => write!(
                 f,
                 "[{}]",
                 vector
                     .iter()
                     .map(|data_type| format!("{:?}", data_type))
-                    .collect::<Vec<String>>()
+                    .collect::<Vec<std::string::String>>()
                     .join(" ")
             ),
-            DataType::Dictionary(dict) => write!(
+            Dictionary(dict) => write!(
                 f,
                 "{{{}}}",
                 dict.iter()
                     .map(|value| format!("{:?}: {:?}", value.0, value.1))
-                    .collect::<Vec<String>>()
+                    .collect::<Vec<std::string::String>>()
                     .join(", ")
             ),
-            DataType::Symbol(symbol) => write!(f, "{}", symbol),
-            DataType::Comment() => write!(f, ""),
-            DataType::Nil() => write!(f, "nil"),
-            DataType::Bool(value) => write!(f, "{}", value),
-            DataType::Float(float) => write!(f, "{}", float),
+            Symbol(symbol) => write!(f, "{}", symbol),
+            Comment() => write!(f, ""),
+            Nil() => write!(f, "nil"),
+            Bool(value) => write!(f, "{}", value),
+            Float(float) => write!(f, "{}", float),
         }
     }
 }
 
 impl Reader {
-    pub fn next(&mut self) -> Option<String> {
+    pub fn next(&mut self) -> Option<std::string::String> {
         self.tokens.pop_front()
     }
 
-    pub fn peek(&self) -> Option<String> {
+    pub fn peek(&self) -> Option<std::string::String> {
         self.tokens.get(0).cloned()
     }
 
-    pub fn new(input: VecDeque<String>) -> Reader {
+    pub fn new(input: VecDeque<std::string::String>) -> Reader {
         Reader { tokens: input }
     }
 
@@ -117,7 +119,10 @@ impl Reader {
         }
     }
 
-    pub fn read_list(&mut self, end_character: String) -> Result<DataType, ParseError> {
+    pub fn read_list(
+        &mut self,
+        end_character: std::string::String,
+    ) -> Result<DataType, ParseError> {
         let mut children = vec![];
 
         loop {
@@ -138,13 +143,16 @@ impl Reader {
         }
         self.next();
         if end_character == ")" {
-            return Ok(DataType::List(children));
+            return Ok(List(children));
         } else {
-            return Ok(DataType::Node(children));
+            return Ok(Node(children));
         }
     }
 
-    pub fn read_dictionary(&mut self, end_character: String) -> Result<DataType, ParseError> {
+    pub fn read_dictionary(
+        &mut self,
+        end_character: std::string::String,
+    ) -> Result<DataType, ParseError> {
         let mut children: HashMap<DataTypeHashable, DataType> = HashMap::new();
 
         loop {
@@ -162,7 +170,7 @@ impl Reader {
             }
 
             let child1 = match self.read() {
-                Ok(DataType::Hashable(p)) => p,
+                Ok(Hashable(p)) => p,
                 Ok(_) => {
                     return Err(ParseError {
                         msg: "Cannot use non-hashable as dictionary key!".to_string(),
@@ -180,7 +188,7 @@ impl Reader {
             children.insert(child1, child2);
         }
         self.next();
-        return Ok(DataType::Dictionary(children));
+        return Ok(Dictionary(children));
     }
 
     pub fn read_atom(&mut self) -> Result<DataType, ParseError> {
@@ -191,9 +199,9 @@ impl Reader {
         };
 
         if let Ok(number) = token.parse::<i128>() {
-            Ok(DataType::Hashable(DataTypeHashable::Number(number)))
+            Ok(Hashable(Number(number)))
         } else if let Ok(number) = token.parse::<f64>() {
-            Ok(DataType::Float(number))
+            Ok(Float(number))
         } else {
             let Some(first_char) = token.chars().nth(0) else {
                 return Err(ParseError {
@@ -201,23 +209,21 @@ impl Reader {
                 });
             };
             match token.as_str() {
-                "false" => Ok(DataType::Bool(false)),
-                "true" => Ok(DataType::Bool(true)),
-                "nil" => Ok(DataType::Nil()),
+                "false" => Ok(Bool(false)),
+                "true" => Ok(Bool(true)),
+                "nil" => Ok(Nil()),
                 _ if first_char == '"' => {
                     let converted = token
                         .replace("\\n", "\n")
                         .replace("\\\\", "\\")
                         .replace("\\\"", "\"");
                     let quotes_removed = &converted[1..converted.len() - 1];
-                    Ok(DataType::Hashable(DataTypeHashable::String(
-                        quotes_removed.to_string(),
-                    )))
+                    Ok(Hashable(String(quotes_removed.to_string())))
                 }
-                _ if first_char == ';' => Ok(DataType::Comment()),
+                _ if first_char == ';' => Ok(Comment()),
                 _ if first_char == '[' => self.read_list("]".to_string()),
                 _ if first_char == '{' => self.read_dictionary("}".to_string()),
-                _ => Ok(DataType::Symbol(token)),
+                _ => Ok(Symbol(token)),
             }
         }
     }
@@ -227,8 +233,8 @@ pub fn get_regex() -> Regex {
     Regex::new(REGEX_TOKEN_EXP).expect("Expected a valid regex expression!")
 }
 
-pub fn tokenize(input: String, re: Regex) -> VecDeque<String> {
-    let mut tokens: VecDeque<String> = VecDeque::new();
+pub fn tokenize(input: std::string::String, re: Regex) -> VecDeque<std::string::String> {
+    let mut tokens: VecDeque<std::string::String> = VecDeque::new();
     for (_, [token_match]) in re
         .captures_iter(input.trim())
         .map(|captures| captures.extract())

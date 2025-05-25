@@ -3,10 +3,10 @@ use std::{
     io::{Write, stdin, stdout},
 };
 
-use default_env::{ADDITION, DIVISION, MULTIPLICATION, SUBTRACTION};
+use env::{ADDITION, DIVISION, MULTIPLICATION, SUBTRACTION};
 use reader::{DataType, DataTypeHashable, ParseError, Reader, get_regex, tokenize};
 
-mod default_env;
+mod env;
 mod reader;
 
 #[cfg(test)]
