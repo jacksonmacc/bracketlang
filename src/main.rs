@@ -52,8 +52,9 @@ fn eval(ast: &DataType, repl_env: &mut Environment) -> Result<DataType, EvalErro
                     if let (Some(DataType::Symbol(sym)), Some(val)) =
                         (children.get(1), children.get(2))
                     {
-                        repl_env.set(sym.to_owned(), val.clone());
-                        return Ok(val.clone());
+                        let evaluated_val = eval(val, repl_env)?;
+                        repl_env.set(sym.to_owned(), evaluated_val.clone());
+                        return Ok(evaluated_val);
                     } else {
                         return Err(EvalError {
                             msg: "Incorrect usage of def!".to_string(),
@@ -130,7 +131,7 @@ fn eval(ast: &DataType, repl_env: &mut Environment) -> Result<DataType, EvalErro
                 .iter()
                 .map(|child| eval(child, repl_env))
                 .collect::<Result<_, EvalError>>()?;
-            Ok(DataType::List(evaluated))
+            Ok(DataType::List(Rc::new(evaluated)))
         }
 
         DataType::Dictionary(dict) => {
@@ -141,7 +142,7 @@ fn eval(ast: &DataType, repl_env: &mut Environment) -> Result<DataType, EvalErro
                     Err(err) => Err(err),
                 })
                 .collect::<Result<HashMap<String, DataType>, EvalError>>()?;
-            Ok(DataType::Dictionary(evaluated))
+            Ok(DataType::Dictionary(Rc::new(evaluated)))
         }
         DataType::Symbol(sym) => {
             if let Some(val) = repl_env.get(sym) {

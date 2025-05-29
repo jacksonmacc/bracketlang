@@ -35,8 +35,8 @@ pub enum DataType {
     String(String),
     Node(Vec<DataType>),
     Comment(),
-    List(Vec<DataType>),
-    Dictionary(HashMap<String, DataType>),
+    List(Rc<Vec<DataType>>),
+    Dictionary(Rc<HashMap<String, DataType>>),
     Symbol(std::string::String),
     Function(Rc<dyn Fn(&[DataType]) -> Result<DataType, EvalError>>),
     Bool(bool),
@@ -138,7 +138,7 @@ impl Reader {
         if end_character == ")" {
             return Ok(DataType::Node(children));
         } else {
-            return Ok(DataType::List(children));
+            return Ok(DataType::List(Rc::new(children)));
         }
     }
 
@@ -176,7 +176,7 @@ impl Reader {
             children.insert(format!("{:?}", child1), child2);
         }
         self.next();
-        return Ok(DataType::Dictionary(children));
+        return Ok(DataType::Dictionary(Rc::new(children)));
     }
 
     pub fn read_atom(&mut self) -> Result<DataType, ParseError> {
