@@ -1,8 +1,11 @@
-use std::collections::{HashMap, VecDeque};
+use std::{
+    collections::{HashMap, VecDeque},
+    rc::Rc,
+};
 
-use DataType::*;
-use DataTypeHashable::*;
 use regex::Regex;
+
+use crate::EvalError;
 
 /*
 [\s,]* get rid of whitespaces and commas
@@ -24,39 +27,26 @@ pub struct ParseError {
     pub msg: std::string::String,
 }
 
-#[derive(PartialEq, Eq, Hash, Clone)]
-pub enum DataTypeHashable {
-    Number(i128),
-    String(std::string::String),
-}
-
+// TODO: Make these RC'd
 #[derive(Clone)]
 pub enum DataType {
     Nil(),
-    Hashable(DataTypeHashable),
+    Number(i128),
+    String(String),
     Node(Vec<DataType>),
     Comment(),
     List(Vec<DataType>),
-    Dictionary(HashMap<DataTypeHashable, DataType>),
+    Dictionary(HashMap<String, DataType>),
     Symbol(std::string::String),
+    Function(Rc<dyn Fn(&[DataType]) -> Result<DataType, EvalError>>),
     Bool(bool),
     Float(f64),
-}
-
-impl std::fmt::Debug for DataTypeHashable {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Number(number) => write!(f, "{}", number),
-            String(string) => write!(f, "\"{}\"", string),
-        }
-    }
 }
 
 impl std::fmt::Debug for DataType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Hashable(primitive) => write!(f, "{:?}", primitive),
-            Node(vector) => write!(
+            DataType::Node(vector) => write!(
                 f,
                 "({})",
                 vector
@@ -65,7 +55,7 @@ impl std::fmt::Debug for DataType {
                     .collect::<Vec<std::string::String>>()
                     .join(" ")
             ),
-            List(vector) => write!(
+            DataType::List(vector) => write!(
                 f,
                 "[{}]",
                 vector
@@ -74,7 +64,7 @@ impl std::fmt::Debug for DataType {
                     .collect::<Vec<std::string::String>>()
                     .join(" ")
             ),
-            Dictionary(dict) => write!(
+            DataType::Dictionary(dict) => write!(
                 f,
                 "{{{}}}",
                 dict.iter()
@@ -82,11 +72,14 @@ impl std::fmt::Debug for DataType {
                     .collect::<Vec<std::string::String>>()
                     .join(", ")
             ),
-            Symbol(symbol) => write!(f, "{}", symbol),
-            Comment() => write!(f, ""),
-            Nil() => write!(f, "nil"),
-            Bool(value) => write!(f, "{}", value),
-            Float(float) => write!(f, "{}", float),
+            DataType::Symbol(symbol) => write!(f, "{}", symbol),
+            DataType::Comment() => write!(f, ""),
+            DataType::Nil() => write!(f, "nil"),
+            DataType::Bool(value) => write!(f, "{}", value),
+            DataType::Float(float) => write!(f, "{}", float),
+            DataType::Number(num) => write!(f, "{}", num),
+            DataType::String(str) => write!(f, "{}", str),
+            DataType::Function(func) => write!(f, "{:p}", func),
         }
     }
 }
@@ -143,9 +136,9 @@ impl Reader {
         }
         self.next();
         if end_character == ")" {
-            return Ok(List(children));
+            return Ok(DataType::Node(children));
         } else {
-            return Ok(Node(children));
+            return Ok(DataType::List(children));
         }
     }
 
@@ -153,7 +146,7 @@ impl Reader {
         &mut self,
         end_character: std::string::String,
     ) -> Result<DataType, ParseError> {
-        let mut children: HashMap<DataTypeHashable, DataType> = HashMap::new();
+        let mut children: HashMap<String, DataType> = HashMap::new();
 
         loop {
             let token = match self.peek() {
@@ -170,12 +163,7 @@ impl Reader {
             }
 
             let child1 = match self.read() {
-                Ok(Hashable(p)) => p,
-                Ok(_) => {
-                    return Err(ParseError {
-                        msg: "Cannot use non-hashable as dictionary key!".to_string(),
-                    });
-                }
+                Ok(p) => p,
                 Err(_) => {
                     return Err(ParseError {
                         msg: "Couldn't find closing bracket".to_string(),
@@ -185,10 +173,10 @@ impl Reader {
 
             let child2 = self.read()?;
 
-            children.insert(child1, child2);
+            children.insert(format!("{:?}", child1), child2);
         }
         self.next();
-        return Ok(Dictionary(children));
+        return Ok(DataType::Dictionary(children));
     }
 
     pub fn read_atom(&mut self) -> Result<DataType, ParseError> {
@@ -199,9 +187,9 @@ impl Reader {
         };
 
         if let Ok(number) = token.parse::<i128>() {
-            Ok(Hashable(Number(number)))
+            Ok(DataType::Number(number))
         } else if let Ok(number) = token.parse::<f64>() {
-            Ok(Float(number))
+            Ok(DataType::Float(number))
         } else {
             let Some(first_char) = token.chars().nth(0) else {
                 return Err(ParseError {
@@ -209,21 +197,21 @@ impl Reader {
                 });
             };
             match token.as_str() {
-                "false" => Ok(Bool(false)),
-                "true" => Ok(Bool(true)),
-                "nil" => Ok(Nil()),
+                "false" => Ok(DataType::Bool(false)),
+                "true" => Ok(DataType::Bool(true)),
+                "nil" => Ok(DataType::Nil()),
                 _ if first_char == '"' => {
                     let converted = token
                         .replace("\\n", "\n")
                         .replace("\\\\", "\\")
                         .replace("\\\"", "\"");
                     let quotes_removed = &converted[1..converted.len() - 1];
-                    Ok(Hashable(String(quotes_removed.to_string())))
+                    Ok(DataType::String(quotes_removed.to_string()))
                 }
-                _ if first_char == ';' => Ok(Comment()),
+                _ if first_char == ';' => Ok(DataType::Comment()),
                 _ if first_char == '[' => self.read_list("]".to_string()),
                 _ if first_char == '{' => self.read_dictionary("}".to_string()),
-                _ => Ok(Symbol(token)),
+                _ => Ok(DataType::Symbol(token)),
             }
         }
     }

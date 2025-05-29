@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::{
     create_repl_env, eval, read,
-    reader::{DataType, DataTypeHashable, get_regex, tokenize},
+    reader::{DataType, get_regex, tokenize},
 };
 
 const FIB_TEST: &str = "(defun fib (n)
@@ -107,8 +107,8 @@ fn test_parsing_dict() {
 #[test]
 fn test_eval_simple_addition() {
     let result = eval(&read("(+ 3 2)".to_string()).unwrap(), &create_repl_env()).unwrap();
-    if let DataType::Hashable(num_result) = result {
-        assert_eq!(num_result, DataTypeHashable::Number(5));
+    if let DataType::Number(num_result) = result {
+        assert_eq!(num_result, 5);
     } else {
         assert!(false);
     }
@@ -121,11 +121,8 @@ fn test_eval_simple_addition_with_strings() {
         &create_repl_env(),
     )
     .unwrap();
-    if let DataType::Hashable(num_result) = result {
-        assert_eq!(
-            num_result,
-            DataTypeHashable::String("Hello, World!".to_string())
-        );
+    if let DataType::String(num_result) = result {
+        assert_eq!(num_result, "Hello, World!".to_string());
     } else {
         assert!(false);
     }
@@ -134,8 +131,8 @@ fn test_eval_simple_addition_with_strings() {
 #[test]
 fn test_eval_addition_with_negatives() {
     let result = eval(&read("(+ 3 -4)".to_string()).unwrap(), &create_repl_env()).unwrap();
-    if let DataType::Hashable(num_result) = result {
-        assert_eq!(num_result, DataTypeHashable::Number(-1));
+    if let DataType::Number(num_result) = result {
+        assert_eq!(num_result, -1);
     } else {
         assert!(false);
     }
@@ -158,8 +155,8 @@ fn test_eval_addition_with_floats() {
 #[test]
 fn test_eval_simple_subtraction() {
     let result = eval(&read("(- 3 2)".to_string()).unwrap(), &create_repl_env()).unwrap();
-    if let DataType::Hashable(num_result) = result {
-        assert_eq!(num_result, DataTypeHashable::Number(1));
+    if let DataType::Number(num_result) = result {
+        assert_eq!(num_result, 1);
     } else {
         assert!(false);
     }
@@ -168,8 +165,8 @@ fn test_eval_simple_subtraction() {
 #[test]
 fn test_eval_subtraction_with_negatives() {
     let result = eval(&read("(- 3 -4)".to_string()).unwrap(), &create_repl_env()).unwrap();
-    if let DataType::Hashable(num_result) = result {
-        assert_eq!(num_result, DataTypeHashable::Number(7));
+    if let DataType::Number(num_result) = result {
+        assert_eq!(num_result, 7);
     } else {
         assert!(false);
     }
@@ -192,8 +189,8 @@ fn test_eval_subtraction_with_floats() {
 #[test]
 fn test_eval_simple_multiplication() {
     let result = eval(&read("(* 3 2)".to_string()).unwrap(), &create_repl_env()).unwrap();
-    if let DataType::Hashable(num_result) = result {
-        assert_eq!(num_result, DataTypeHashable::Number(6));
+    if let DataType::Number(num_result) = result {
+        assert_eq!(num_result, 6);
     } else {
         assert!(false);
     }
@@ -202,8 +199,8 @@ fn test_eval_simple_multiplication() {
 #[test]
 fn test_eval_multiplication_with_negatives() {
     let result = eval(&read("(* 3 -4)".to_string()).unwrap(), &create_repl_env()).unwrap();
-    if let DataType::Hashable(num_result) = result {
-        assert_eq!(num_result, DataTypeHashable::Number(-12));
+    if let DataType::Number(num_result) = result {
+        assert_eq!(num_result, -12);
     } else {
         assert!(false);
     }
@@ -226,8 +223,8 @@ fn test_eval_multiplication_with_floats() {
 #[test]
 fn test_eval_simple_division() {
     let result = eval(&read("(/ 4 2)".to_string()).unwrap(), &create_repl_env()).unwrap();
-    if let DataType::Hashable(num_result) = result {
-        assert_eq!(num_result, DataTypeHashable::Number(2));
+    if let DataType::Number(num_result) = result {
+        assert_eq!(num_result, 2);
     } else {
         assert!(false);
     }
@@ -236,8 +233,8 @@ fn test_eval_simple_division() {
 #[test]
 fn test_eval_division_with_negatives() {
     let result = eval(&read("(/ -18 -6)".to_string()).unwrap(), &create_repl_env()).unwrap();
-    if let DataType::Hashable(num_result) = result {
-        assert_eq!(num_result, DataTypeHashable::Number(3));
+    if let DataType::Number(num_result) = result {
+        assert_eq!(num_result, 3);
     } else {
         assert!(false);
     }

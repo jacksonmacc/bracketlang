@@ -1,6 +1,6 @@
 use crate::{
     EvalError,
-    reader::{DataType, DataType::*, DataTypeHashable::*},
+    reader::{DataType, DataType::*},
 };
 
 pub struct Symbol {
@@ -11,60 +11,21 @@ pub struct Symbol {
 pub const ADDITION: Symbol = Symbol {
     id: "+",
     func: |values: &[DataType]| {
-        if values.len() > 1 {
-            match values.first() {
-                Some(Hashable(Number(_))) => {
-                    let mut total = 0;
-                    for value in values {
-                        match value {
-                            Hashable(Number(num)) => total += num,
-                            _ => {
-                                return Err(EvalError {
-                                    msg: "Invalid types for addition!".to_string(),
-                                });
-                            }
-                        }
-                    }
+        if values.len() == 2 {
+            match (values.get(0), values.get(1)) {
+                (Some(Number(num1)), Some(Number(num2))) => Ok(Number(num1 + num2)),
 
-                    Ok(Hashable(Number(total)))
-                }
-                Some(Hashable(String(_))) => {
-                    let mut total = std::string::String::new();
-                    for value in values {
-                        match value {
-                            Hashable(String(string)) => total += string,
-                            _ => {
-                                return Err(EvalError {
-                                    msg: "Invalid types for addition!".to_string(),
-                                });
-                            }
-                        }
-                    }
+                (Some(Float(num1)), Some(Float(num2))) => Ok(Float(num1 + num2)),
 
-                    Ok(Hashable(String(total)))
-                }
-                Some(Float(_)) => {
-                    let mut total = 0.0;
-                    for value in values {
-                        match value {
-                            Float(float) => total += float,
-                            _ => {
-                                return Err(EvalError {
-                                    msg: "Invalid types for addition!".to_string(),
-                                });
-                            }
-                        }
-                    }
+                (Some(String(str1)), Some(String(str2))) => Ok(String(str1.to_owned() + str2)),
 
-                    Ok(Float(total))
-                }
-                None | Some(_) => Err(EvalError {
-                    msg: "Invalid types for addition".to_string(),
+                _ => Err(EvalError {
+                    msg: "Incorrect types for addition!".to_string(),
                 }),
             }
         } else {
             Err(EvalError {
-                msg: "Not enough arguments for addition".to_string(),
+                msg: "Incorrect number of arguments for addition".to_string(),
             })
         }
     },
@@ -73,58 +34,29 @@ pub const ADDITION: Symbol = Symbol {
 pub const MULTIPLICATION: Symbol = Symbol {
     id: "*",
     func: |values: &[DataType]| {
-        if values.len() > 1 {
-            match values.first() {
-                Some(Hashable(Number(_))) => {
-                    let mut total = 1;
-                    for value in values {
-                        match value {
-                            Hashable(Number(num)) => total *= num,
-                            _ => {
-                                return Err(EvalError {
-                                    msg: "Invalid types for mutliplication!".to_string(),
-                                });
-                            }
-                        }
-                    }
+        if values.len() == 2 {
+            match (values.get(0), values.get(1)) {
+                (Some(Number(num1)), Some(Number(num2))) => Ok(Number(num1 * num2)),
 
-                    Ok(Hashable(Number(total)))
-                }
-                Some(Float(_)) => {
-                    let mut total = 1.0;
-                    for value in values {
-                        match value {
-                            Float(float) => total *= float,
-                            _ => {
-                                return Err(EvalError {
-                                    msg: "Invalid types for multiplication!".to_string(),
-                                });
-                            }
-                        }
-                    }
+                (Some(Float(num1)), Some(Float(num2))) => Ok(Float(num1 * num2)),
 
-                    Ok(Float(total))
-                }
-                None | Some(_) => Err(EvalError {
-                    msg: "Invalid types for multiplication".to_string(),
+                _ => Err(EvalError {
+                    msg: "Incorrect types for addition!".to_string(),
                 }),
             }
         } else {
             Err(EvalError {
-                msg: "Not enough arguments for multiplication".to_string(),
+                msg: "Incorrect number of arguments for addition".to_string(),
             })
         }
     },
 };
-
 pub const SUBTRACTION: Symbol = Symbol {
     id: "-",
     func: |values: &[DataType]| {
         if values.len() == 2 {
             match (values.get(0), values.get(1)) {
-                (Some(Hashable(Number(num1))), Some(Hashable(Number(num2)))) => {
-                    Ok(Hashable(Number(num1 - num2)))
-                }
+                (Some(Number(num1)), Some(Number(num2))) => Ok(Number(num1 - num2)),
 
                 (Some(Float(num1)), Some(Float(num2))) => Ok(Float(num1 - num2)),
 
@@ -145,9 +77,7 @@ pub const DIVISION: Symbol = Symbol {
     func: |values: &[DataType]| {
         if values.len() == 2 {
             match (values.get(0), values.get(1)) {
-                (Some(Hashable(Number(num1))), Some(Hashable(Number(num2)))) => {
-                    Ok(Hashable(Number(num1 / num2)))
-                }
+                (Some(Number(num1)), Some(Number(num2))) => Ok(Number(num1 / num2)),
 
                 (Some(Float(num1)), Some(Float(num2))) => Ok(Float(num1 / num2)),
 

@@ -1,10 +1,11 @@
 use std::{
     collections::HashMap,
     io::{Write, stdin, stdout},
+    rc::Rc,
 };
 
 use env::{ADDITION, DIVISION, MULTIPLICATION, SUBTRACTION};
-use reader::{DataType, DataTypeHashable, ParseError, Reader, get_regex, tokenize};
+use reader::{DataType, ParseError, Reader, get_regex, tokenize};
 
 mod env;
 mod reader;
@@ -12,16 +13,37 @@ mod reader;
 #[cfg(test)]
 mod tests;
 
+struct Environment {
+    outer: Option<Box<Self>>,
+    data: HashMap<String, DataType>,
+}
+
+impl Environment {
+    fn set(&mut self, sym: String, value: DataType) {
+        self.data.insert(sym, value);
+    }
+
+    fn get(&self, sym: &String) -> Option<DataType> {
+        match self.data.get(sym) {
+            Some(v) => Some(v.clone()),
+            None => {
+                let Some(ref outer_env) = self.outer else {
+                    return None;
+                };
+
+                outer_env.get(sym)
+            }
+        }
+    }
+}
+
 fn read(input: String) -> Result<DataType, ParseError> {
     let tokens = tokenize(input, get_regex());
     let mut reader = Reader::new(tokens);
     reader.read()
 }
 
-fn eval(
-    ast: &DataType,
-    repl_env: &HashMap<String, impl Fn(&[DataType]) -> Result<DataType, EvalError>>,
-) -> Result<DataType, EvalError> {
+fn eval(ast: &DataType, repl_env: &Environment) -> Result<DataType, EvalError> {
     match ast {
         DataType::Node(children) => {
             let evaluated: Vec<DataType> = children
@@ -30,18 +52,19 @@ fn eval(
                 .collect::<Result<_, EvalError>>()?;
 
             if let Some(DataType::Symbol(sym)) = evaluated.first() {
-                let Some(func) = repl_env.get(sym) else {
+                let Some(DataType::Function(func)) = repl_env.get(sym) else {
                     return Err(EvalError {
                         msg: format!("Couldn't find symbol \"{}\"", sym),
                     });
                 };
-                func(&evaluated[1..])
+                Ok(func(&evaluated[1..])?)
             } else {
                 Err(EvalError {
                     msg: "Created function without name!".to_string(),
                 })
             }
         }
+
         DataType::List(list) => {
             let evaluated: Vec<DataType> = list
                 .iter()
@@ -49,14 +72,15 @@ fn eval(
                 .collect::<Result<_, EvalError>>()?;
             Ok(DataType::List(evaluated))
         }
+
         DataType::Dictionary(dict) => {
-            let evaluated: HashMap<DataTypeHashable, DataType> = dict
+            let evaluated: HashMap<String, DataType> = dict
                 .iter()
                 .map(|child| match eval(child.1, repl_env) {
                     Ok(result) => Ok((child.0.clone(), result)),
                     Err(err) => Err(err),
                 })
-                .collect::<Result<HashMap<DataTypeHashable, DataType>, EvalError>>()?;
+                .collect::<Result<HashMap<String, DataType>, EvalError>>()?;
             Ok(DataType::Dictionary(evaluated))
         }
         _ => Ok(ast.clone()),
@@ -67,16 +91,13 @@ fn print(input: DataType) -> String {
     format!("{:?}", input)
 }
 
-fn rep(
-    input: String,
-    repl_env: &HashMap<String, impl Fn(&[DataType]) -> Result<DataType, EvalError>>,
-) -> String {
+fn rep(input: String, repl_env: &Environment) -> String {
     let ast = match read(input) {
         Ok(r) => r,
         Err(e) => return e.msg,
     };
 
-    let eval_result = match eval(&ast, repl_env) {
+    let eval_result = match eval(&ast, &repl_env) {
         Ok(r) => r,
         Err(e) => return e.msg,
     };
@@ -89,13 +110,27 @@ struct EvalError {
     msg: String,
 }
 
-fn create_repl_env() -> HashMap<String, impl Fn(&[DataType]) -> Result<DataType, EvalError>> {
-    let mut repl_env: HashMap<String, Box<dyn Fn(&[DataType]) -> Result<DataType, EvalError>>> =
-        HashMap::new();
-    repl_env.insert(ADDITION.id.to_string(), Box::new(ADDITION.func));
-    repl_env.insert(SUBTRACTION.id.to_string(), Box::new(SUBTRACTION.func));
-    repl_env.insert(DIVISION.id.to_string(), Box::new(DIVISION.func));
-    repl_env.insert(MULTIPLICATION.id.to_string(), Box::new(MULTIPLICATION.func));
+fn create_repl_env() -> Environment {
+    let mut repl_env = Environment {
+        outer: None,
+        data: HashMap::new(),
+    };
+    repl_env.set(
+        ADDITION.id.to_string(),
+        DataType::Function(Rc::new(ADDITION.func)),
+    );
+    repl_env.set(
+        SUBTRACTION.id.to_string(),
+        DataType::Function(Rc::new(SUBTRACTION.func)),
+    );
+    repl_env.set(
+        DIVISION.id.to_string(),
+        DataType::Function(Rc::new(DIVISION.func)),
+    );
+    repl_env.set(
+        MULTIPLICATION.id.to_string(),
+        DataType::Function(Rc::new(MULTIPLICATION.func)),
+    );
 
     repl_env
 }
