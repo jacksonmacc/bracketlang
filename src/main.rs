@@ -46,7 +46,7 @@ fn read(input: String) -> Result<DataType, ParseError> {
 
 fn eval(ast: &DataType, repl_env: &mut Environment) -> Result<DataType, EvalError> {
     match ast {
-        DataType::Node(children) => {
+        DataType::List(children) => {
             match children.first() {
                 Some(DataType::Symbol(val)) if *val == "def!".to_string() => {
                     if let (Some(DataType::Symbol(sym)), Some(val)) =
@@ -67,7 +67,7 @@ fn eval(ast: &DataType, repl_env: &mut Environment) -> Result<DataType, EvalErro
                         data: HashMap::new(),
                     };
 
-                    if let (Some(DataType::Node(children)), Some(data)) =
+                    if let (Some(DataType::List(children)), Some(data)) =
                         (children.get(1), children.get(2))
                     {
                         let mut i = 0;
@@ -126,12 +126,12 @@ fn eval(ast: &DataType, repl_env: &mut Environment) -> Result<DataType, EvalErro
             }
         }
 
-        DataType::List(list) => {
+        DataType::Vector(list) => {
             let evaluated: Vec<DataType> = list
                 .iter()
                 .map(|child| eval(child, repl_env))
                 .collect::<Result<_, EvalError>>()?;
-            Ok(DataType::List(Rc::new(evaluated)))
+            Ok(DataType::Vector(Rc::new(evaluated)))
         }
 
         DataType::Dictionary(dict) => {

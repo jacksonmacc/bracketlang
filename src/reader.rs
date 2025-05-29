@@ -33,9 +33,9 @@ pub enum DataType {
     Nil(),
     Number(i128),
     String(String),
-    Node(Vec<DataType>),
+    List(Vec<DataType>),
     Comment(),
-    List(Rc<Vec<DataType>>),
+    Vector(Rc<Vec<DataType>>),
     Dictionary(Rc<HashMap<String, DataType>>),
     Symbol(std::string::String),
     Function(Rc<dyn Fn(&[DataType]) -> Result<DataType, EvalError>>),
@@ -46,7 +46,7 @@ pub enum DataType {
 impl std::fmt::Debug for DataType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            DataType::Node(vector) => write!(
+            DataType::List(vector) => write!(
                 f,
                 "({})",
                 vector
@@ -55,7 +55,7 @@ impl std::fmt::Debug for DataType {
                     .collect::<Vec<std::string::String>>()
                     .join(" ")
             ),
-            DataType::List(vector) => write!(
+            DataType::Vector(vector) => write!(
                 f,
                 "[{}]",
                 vector
@@ -136,9 +136,9 @@ impl Reader {
         }
         self.next();
         if end_character == ")" {
-            return Ok(DataType::Node(children));
+            return Ok(DataType::List(children));
         } else {
-            return Ok(DataType::List(Rc::new(children)));
+            return Ok(DataType::Vector(Rc::new(children)));
         }
     }
 
