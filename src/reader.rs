@@ -78,7 +78,7 @@ impl std::fmt::Debug for DataType {
             DataType::Bool(value) => write!(f, "{}", value),
             DataType::Float(float) => write!(f, "{}", float),
             DataType::Number(num) => write!(f, "{}", num),
-            DataType::String(str) => write!(f, "{}", str),
+            DataType::String(str) => write!(f, "\"{}\"", str),
             DataType::Function(func) => write!(f, "{:p}", func),
         }
     }
