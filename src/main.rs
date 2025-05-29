@@ -103,6 +103,41 @@ fn eval(ast: &DataType, repl_env: &mut Environment) -> Result<DataType, EvalErro
                         });
                     }
                 }
+                Some(DataType::Symbol(val)) if *val == "do".to_string() => {
+                    for child in &children[1..children.len() - 2] {
+                        let _ = eval(child, repl_env);
+                    }
+                    if let Some(final_child) = children.last() {
+                        return eval(final_child, repl_env);
+                    } else {
+                        return Err(EvalError {
+                            msg: "No arguments given for do".to_string(),
+                        });
+                    }
+                }
+                Some(DataType::Symbol(val)) if *val == "if".to_string() => match children.get(1) {
+                    Some(DataType::Bool(false) | DataType::Nil()) => {
+                        if let Some(arg) = children.get(3) {
+                            return eval(arg, repl_env);
+                        } else {
+                            return Ok(DataType::Nil());
+                        }
+                    }
+                    Some(_) => {
+                        if let Some(arg) = children.get(2) {
+                            return eval(arg, repl_env);
+                        } else {
+                            return Err(EvalError {
+                                msg: "No body for if expression".to_string(),
+                            });
+                        }
+                    }
+                    None => {
+                        return Err(EvalError {
+                            msg: "No condition for if expression".to_string(),
+                        });
+                    }
+                },
                 _ => {}
             };
 
@@ -112,16 +147,9 @@ fn eval(ast: &DataType, repl_env: &mut Environment) -> Result<DataType, EvalErro
                 .collect::<Result<_, EvalError>>()?;
 
             match evaluated.first() {
-                Some(DataType::Symbol(sym)) => {
-                    let Some(DataType::Function(func)) = repl_env.get(sym) else {
-                        return Err(EvalError {
-                            msg: format!("Couldn't find symbol \"{}\"", sym),
-                        });
-                    };
-                    Ok(func(&evaluated[1..])?)
-                }
+                Some(DataType::Function(function)) => Ok(function(&evaluated[1..])?),
                 None | Some(_) => Err(EvalError {
-                    msg: "Created function without name!".to_string(),
+                    msg: "List has no leading function".to_string(),
                 }),
             }
         }

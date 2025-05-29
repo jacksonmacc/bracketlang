@@ -13,7 +13,7 @@ pub const ADDITION: Symbol = Symbol {
     func: |values: &[DataType]| {
         if values.len() == 2 {
             match (values.get(0), values.get(1)) {
-                (Some(Number(num1)), Some(Number(num2))) => Ok(Number(num1 + num2)),
+                (Some(Integer(num1)), Some(Integer(num2))) => Ok(Integer(num1 + num2)),
 
                 (Some(Float(num1)), Some(Float(num2))) => Ok(Float(num1 + num2)),
 
@@ -36,7 +36,7 @@ pub const MULTIPLICATION: Symbol = Symbol {
     func: |values: &[DataType]| {
         if values.len() == 2 {
             match (values.get(0), values.get(1)) {
-                (Some(Number(num1)), Some(Number(num2))) => Ok(Number(num1 * num2)),
+                (Some(Integer(num1)), Some(Integer(num2))) => Ok(Integer(num1 * num2)),
 
                 (Some(Float(num1)), Some(Float(num2))) => Ok(Float(num1 * num2)),
 
@@ -56,7 +56,7 @@ pub const SUBTRACTION: Symbol = Symbol {
     func: |values: &[DataType]| {
         if values.len() == 2 {
             match (values.get(0), values.get(1)) {
-                (Some(Number(num1)), Some(Number(num2))) => Ok(Number(num1 - num2)),
+                (Some(Integer(num1)), Some(Integer(num2))) => Ok(Integer(num1 - num2)),
 
                 (Some(Float(num1)), Some(Float(num2))) => Ok(Float(num1 - num2)),
 
@@ -77,7 +77,7 @@ pub const DIVISION: Symbol = Symbol {
     func: |values: &[DataType]| {
         if values.len() == 2 {
             match (values.get(0), values.get(1)) {
-                (Some(Number(num1)), Some(Number(num2))) => Ok(Number(num1 / num2)),
+                (Some(Integer(num1)), Some(Integer(num2))) => Ok(Integer(num1 / num2)),
 
                 (Some(Float(num1)), Some(Float(num2))) => Ok(Float(num1 / num2)),
 

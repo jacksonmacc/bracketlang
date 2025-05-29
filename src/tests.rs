@@ -109,7 +109,7 @@ fn test_parsing_dict() {
 #[test]
 fn test_eval_simple_addition() {
     let result = eval(&read("(+ 3 2)".to_string()).unwrap(), &mut create_repl_env()).unwrap();
-    if let DataType::Number(num_result) = result {
+    if let DataType::Integer(num_result) = result {
         assert_eq!(num_result, 5);
     } else {
         assert!(false);
@@ -133,7 +133,7 @@ fn test_eval_simple_addition_with_strings() {
 #[test]
 fn test_eval_addition_with_negatives() {
     let result = eval(&read("(+ 3 -4)".to_string()).unwrap(), &mut create_repl_env()).unwrap();
-    if let DataType::Number(num_result) = result {
+    if let DataType::Integer(num_result) = result {
         assert_eq!(num_result, -1);
     } else {
         assert!(false);
@@ -157,7 +157,7 @@ fn test_eval_addition_with_floats() {
 #[test]
 fn test_eval_simple_subtraction() {
     let result = eval(&read("(- 3 2)".to_string()).unwrap(), &mut create_repl_env()).unwrap();
-    if let DataType::Number(num_result) = result {
+    if let DataType::Integer(num_result) = result {
         assert_eq!(num_result, 1);
     } else {
         assert!(false);
@@ -167,7 +167,7 @@ fn test_eval_simple_subtraction() {
 #[test]
 fn test_eval_subtraction_with_negatives() {
     let result = eval(&read("(- 3 -4)".to_string()).unwrap(), &mut create_repl_env()).unwrap();
-    if let DataType::Number(num_result) = result {
+    if let DataType::Integer(num_result) = result {
         assert_eq!(num_result, 7);
     } else {
         assert!(false);
@@ -191,7 +191,7 @@ fn test_eval_subtraction_with_floats() {
 #[test]
 fn test_eval_simple_multiplication() {
     let result = eval(&read("(* 3 2)".to_string()).unwrap(), &mut create_repl_env()).unwrap();
-    if let DataType::Number(num_result) = result {
+    if let DataType::Integer(num_result) = result {
         assert_eq!(num_result, 6);
     } else {
         assert!(false);
@@ -201,7 +201,7 @@ fn test_eval_simple_multiplication() {
 #[test]
 fn test_eval_multiplication_with_negatives() {
     let result = eval(&read("(* 3 -4)".to_string()).unwrap(), &mut create_repl_env()).unwrap();
-    if let DataType::Number(num_result) = result {
+    if let DataType::Integer(num_result) = result {
         assert_eq!(num_result, -12);
     } else {
         assert!(false);
@@ -225,7 +225,7 @@ fn test_eval_multiplication_with_floats() {
 #[test]
 fn test_eval_simple_division() {
     let result = eval(&read("(/ 4 2)".to_string()).unwrap(), &mut create_repl_env()).unwrap();
-    if let DataType::Number(num_result) = result {
+    if let DataType::Integer(num_result) = result {
         assert_eq!(num_result, 2);
     } else {
         assert!(false);
@@ -235,7 +235,7 @@ fn test_eval_simple_division() {
 #[test]
 fn test_eval_division_with_negatives() {
     let result = eval(&read("(/ -18 -6)".to_string()).unwrap(), &mut create_repl_env()).unwrap();
-    if let DataType::Number(num_result) = result {
+    if let DataType::Integer(num_result) = result {
         assert_eq!(num_result, 3);
     } else {
         assert!(false);

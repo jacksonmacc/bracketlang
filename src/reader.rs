@@ -27,20 +27,19 @@ pub struct ParseError {
     pub msg: std::string::String,
 }
 
-// TODO: Make these RC'd
 #[derive(Clone)]
 pub enum DataType {
     Nil(),
-    Number(i128),
-    String(String),
     List(Vec<DataType>),
+    Symbol(std::string::String),
+    Integer(i128),
+    Bool(bool),
+    Float(f64),
+    String(String),
     Comment(),
     Vector(Rc<Vec<DataType>>),
     Dictionary(Rc<HashMap<String, DataType>>),
-    Symbol(std::string::String),
     Function(Rc<dyn Fn(&[DataType]) -> Result<DataType, EvalError>>),
-    Bool(bool),
-    Float(f64),
 }
 
 impl std::fmt::Debug for DataType {
@@ -77,7 +76,7 @@ impl std::fmt::Debug for DataType {
             DataType::Nil() => write!(f, "nil"),
             DataType::Bool(value) => write!(f, "{}", value),
             DataType::Float(float) => write!(f, "{}", float),
-            DataType::Number(num) => write!(f, "{}", num),
+            DataType::Integer(num) => write!(f, "{}", num),
             DataType::String(str) => write!(f, "\"{}\"", str),
             DataType::Function(func) => write!(f, "{:p}", func),
         }
@@ -187,7 +186,7 @@ impl Reader {
         };
 
         if let Ok(number) = token.parse::<i128>() {
-            Ok(DataType::Number(number))
+            Ok(DataType::Integer(number))
         } else if let Ok(number) = token.parse::<f64>() {
             Ok(DataType::Float(number))
         } else {
