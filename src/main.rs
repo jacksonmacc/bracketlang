@@ -245,7 +245,7 @@ fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataType, E
                 .iter()
                 .map(|child| eval(child, repl_env))
                 .collect::<Result<_, EvalError>>()?;
-            Ok(DataType::Vector(Rc::new(evaluated)))
+            Ok(DataType::Vector(evaluated))
         }
 
         DataType::Dictionary(dict) => {
@@ -256,7 +256,7 @@ fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataType, E
                     Err(err) => Err(err),
                 })
                 .collect::<Result<HashMap<String, DataType>, EvalError>>()?;
-            Ok(DataType::Dictionary(Rc::new(evaluated)))
+            Ok(DataType::Dictionary(evaluated))
         }
         DataType::Symbol(sym) => {
             if let Some(val) = repl_env.get(sym) {

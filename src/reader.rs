@@ -38,8 +38,8 @@ pub enum DataType {
     Float(f64),
     String(String),
     Comment(),
-    Vector(Rc<Vec<DataType>>),
-    Dictionary(Rc<HashMap<String, DataType>>),
+    Vector(Vec<DataType>),
+    Dictionary(HashMap<String, DataType>),
     Function(Rc<dyn Fn(&[DataType]) -> Result<DataType, EvalError>>),
 }
 
@@ -155,7 +155,7 @@ impl Reader {
         if end_character == ")" {
             return Ok(DataType::List(children));
         } else {
-            return Ok(DataType::Vector(Rc::new(children)));
+            return Ok(DataType::Vector(children));
         }
     }
 
@@ -193,7 +193,7 @@ impl Reader {
             children.insert(format!("{:?}", child1), child2);
         }
         self.next();
-        return Ok(DataType::Dictionary(Rc::new(children)));
+        return Ok(DataType::Dictionary(children));
     }
 
     pub fn read_atom(&mut self) -> Result<DataType, ParseError> {
