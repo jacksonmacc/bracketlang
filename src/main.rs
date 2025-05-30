@@ -4,7 +4,11 @@ use std::{
     rc::Rc,
 };
 
-use env::{ADDITION, DIVISION, MULTIPLICATION, SUBTRACTION};
+use env::{
+    ADDITION, DIVISION, EQUALS, GREATER_THAN, GREATER_THAN_OR_EQUALS, LESS_THAN,
+    LESS_THAN_OR_EQUALS, LIST, LIST_CHECK, LIST_EMPTY, LIST_LEN, MULTIPLICATION, PRINT,
+    SUBTRACTION,
+};
 use reader::{DataType, ParseError, Reader, get_regex, tokenize};
 
 mod env;
@@ -215,9 +219,8 @@ fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataType, E
 
             match evaluated.first() {
                 Some(DataType::Function(function)) => Ok(function(&evaluated[1..])?),
-                None | Some(_) => Err(EvalError {
-                    msg: "List has no leading function".to_string(),
-                }),
+                // TODO: Check that this isn't supposed to error
+                None | Some(_) => Ok(DataType::List(evaluated)),
             }
         }
 
@@ -276,6 +279,7 @@ struct EvalError {
 }
 
 fn create_repl_env() -> Environment {
+    // TODO: write a macro for this
     let mut repl_env = Environment {
         outer: None,
         data: HashMap::new(),
@@ -295,6 +299,43 @@ fn create_repl_env() -> Environment {
     repl_env.set(
         MULTIPLICATION.id.to_string(),
         DataType::Function(Rc::new(MULTIPLICATION.func)),
+    );
+    repl_env.set(
+        PRINT.id.to_string(),
+        DataType::Function(Rc::new(PRINT.func)),
+    );
+    repl_env.set(LIST.id.to_string(), DataType::Function(Rc::new(LIST.func)));
+    repl_env.set(
+        LIST_CHECK.id.to_string(),
+        DataType::Function(Rc::new(LIST_CHECK.func)),
+    );
+    repl_env.set(
+        LIST_EMPTY.id.to_string(),
+        DataType::Function(Rc::new(LIST_EMPTY.func)),
+    );
+    repl_env.set(
+        LIST_LEN.id.to_string(),
+        DataType::Function(Rc::new(LIST_LEN.func)),
+    );
+    repl_env.set(
+        EQUALS.id.to_string(),
+        DataType::Function(Rc::new(EQUALS.func)),
+    );
+    repl_env.set(
+        GREATER_THAN.id.to_string(),
+        DataType::Function(Rc::new(GREATER_THAN.func)),
+    );
+    repl_env.set(
+        LESS_THAN.id.to_string(),
+        DataType::Function(Rc::new(LESS_THAN.func)),
+    );
+    repl_env.set(
+        GREATER_THAN_OR_EQUALS.id.to_string(),
+        DataType::Function(Rc::new(GREATER_THAN_OR_EQUALS.func)),
+    );
+    repl_env.set(
+        LESS_THAN_OR_EQUALS.id.to_string(),
+        DataType::Function(Rc::new(LESS_THAN_OR_EQUALS.func)),
     );
 
     repl_env

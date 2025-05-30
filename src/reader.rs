@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, VecDeque},
+    ptr::addr_of,
     rc::Rc,
 };
 
@@ -40,6 +41,23 @@ pub enum DataType {
     Vector(Rc<Vec<DataType>>),
     Dictionary(Rc<HashMap<String, DataType>>),
     Function(Rc<dyn Fn(&[DataType]) -> Result<DataType, EvalError>>),
+}
+
+impl PartialEq for DataType {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::List(l0), Self::List(r0)) => l0 == r0,
+            (Self::Symbol(l0), Self::Symbol(r0)) => l0 == r0,
+            (Self::Integer(l0), Self::Integer(r0)) => l0 == r0,
+            (Self::Bool(l0), Self::Bool(r0)) => l0 == r0,
+            (Self::Float(l0), Self::Float(r0)) => l0 == r0,
+            (Self::String(l0), Self::String(r0)) => l0 == r0,
+            (Self::Vector(l0), Self::Vector(r0)) => l0 == r0,
+            (Self::Dictionary(l0), Self::Dictionary(r0)) => l0 == r0,
+            (Self::Function(l0), Self::Function(r0)) => addr_of!(l0) == addr_of!(r0),
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
 }
 
 impl std::fmt::Debug for DataType {
