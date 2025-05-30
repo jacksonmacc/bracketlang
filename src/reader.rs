@@ -85,7 +85,7 @@ impl std::fmt::Debug for DataType {
                 f,
                 "{{{}}}",
                 dict.iter()
-                    .map(|value| format!("{:?}: {:?}", value.0, value.1))
+                    .map(|value| format!("{}: {:?}", value.0, value.1))
                     .collect::<Vec<std::string::String>>()
                     .join(", ")
             ),
