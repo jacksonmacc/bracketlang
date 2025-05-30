@@ -96,12 +96,15 @@ pub const DIVISION: CoreFunction = CoreFunction {
 pub const PRINT: CoreFunction = CoreFunction {
     id: "prn",
     func: |values: &[DataType]| {
-        let Some(arg) = values.first() else {
-            return Err(EvalError {
-                msg: "No arguments given to prn".to_string(),
-            });
-        };
-        println!("{:?}", arg);
+        println!(
+            "{}",
+            values
+                .iter()
+                .map(|value| format!("{:?}", value))
+                .collect::<Vec<_>>()
+                .join(" ")
+        );
+
         Ok(DataType::Nil())
     },
 };
