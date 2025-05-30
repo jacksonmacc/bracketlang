@@ -14,12 +14,12 @@ mod reader;
 mod tests;
 
 #[derive(Clone)]
-struct Environment<'a> {
-    outer: Option<Box<&'a Self>>,
+struct Environment {
+    outer: Option<Box<Self>>,
     data: HashMap<String, DataType>,
 }
 
-impl Environment<'_> {
+impl Environment {
     fn set(&mut self, sym: String, value: DataType) {
         self.data.insert(sym, value);
     }
@@ -44,7 +44,7 @@ fn read(input: String) -> Result<DataType, ParseError> {
     reader.read()
 }
 
-fn eval(ast: &DataType, repl_env: &mut Environment) -> Result<DataType, EvalError> {
+fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataType, EvalError> {
     match ast {
         DataType::List(children) => {
             match children.first() {
@@ -63,7 +63,7 @@ fn eval(ast: &DataType, repl_env: &mut Environment) -> Result<DataType, EvalErro
                 }
                 Some(DataType::Symbol(val)) if *val == "let*".to_string() => {
                     let mut new_env = Environment {
-                        outer: Some(Box::new(repl_env)),
+                        outer: Some(Box::new(repl_env.clone())),
                         data: HashMap::new(),
                     };
 
@@ -138,6 +138,73 @@ fn eval(ast: &DataType, repl_env: &mut Environment) -> Result<DataType, EvalErro
                         });
                     }
                 },
+                Some(DataType::Symbol(val)) if *val == "fn*".to_string() => {
+                    if let Some(DataType::List(params)) = children.get(1) {
+                        let param_names = params
+                            .iter()
+                            .map(|param| {
+                                if let DataType::Symbol(param_name) = param {
+                                    Ok(param_name.clone())
+                                } else {
+                                    Err(EvalError {
+                                        msg: format!(
+                                            "{:?} cannot be used as a parameter name",
+                                            param
+                                        ),
+                                    })
+                                }
+                            })
+                            .collect::<Result<Vec<String>, EvalError>>()?;
+                        let closure_env = Environment {
+                            outer: Some(Box::new(repl_env.clone())),
+                            data: HashMap::new(),
+                        };
+                        let Some(closure_body_ref) = children.get(2) else {
+                            return Err(EvalError {
+                                msg: "No body for closure".to_string(),
+                            });
+                        };
+
+                        let closure_body = closure_body_ref.clone();
+
+                        return Ok(DataType::Function(Rc::new(
+                            move |params: &[DataType]| -> Result<DataType, EvalError> {
+                                let mut closure_env = closure_env.clone();
+                                if params.len() != param_names.len() {
+                                    return Err(EvalError {
+                                        msg: "Incorrect number of parameters to function"
+                                            .to_string(),
+                                    });
+                                };
+
+                                let mut i = 0;
+                                loop {
+                                    let (name, param) = match (param_names.get(i), params.get(i)) {
+                                        (Some(name), Some(param)) => (name, param),
+                                        (None, None) => {
+                                            break;
+                                        }
+                                        _ => {
+                                            return Err(EvalError {
+                                                msg:
+                                                    "Parameters given do not match expected parameters"
+                                                        .to_string(),
+                                            });
+                                        }
+                                    };
+                                    closure_env.set(name.to_owned(), param.clone());
+                                    i += 1;
+                                }
+
+                                eval(&closure_body, &mut closure_env)
+                            },
+                        )));
+                    } else {
+                        return Err(EvalError {
+                            msg: "Expected parameter list for function".to_string(),
+                        });
+                    }
+                }
                 _ => {}
             };
 
@@ -208,7 +275,7 @@ struct EvalError {
     msg: String,
 }
 
-fn create_repl_env() -> Environment<'static> {
+fn create_repl_env() -> Environment {
     let mut repl_env = Environment {
         outer: None,
         data: HashMap::new(),
