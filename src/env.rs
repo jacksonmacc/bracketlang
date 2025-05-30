@@ -146,7 +146,7 @@ pub const LIST_EMPTY: CoreFunction = CoreFunction {
 };
 
 pub const LIST_LEN: CoreFunction = CoreFunction {
-    id: "empty?",
+    id: "count",
     func: |values: &[DataType]| {
         if let Some(DataType::List(children)) = values.first() {
             let length = match children.len().try_into() {

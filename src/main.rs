@@ -174,16 +174,30 @@ fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataType, E
                         return Ok(DataType::Function(Rc::new(
                             move |params: &[DataType]| -> Result<DataType, EvalError> {
                                 let mut closure_env = closure_env.clone();
-                                if params.len() != param_names.len() {
-                                    return Err(EvalError {
-                                        msg: "Incorrect number of parameters to function"
-                                            .to_string(),
-                                    });
-                                };
 
                                 let mut i = 0;
                                 loop {
                                     let (name, param) = match (param_names.get(i), params.get(i)) {
+                                        (Some(ampersand), Some(_)) if ampersand == "&" => {
+                                            let Some(name) = param_names.get(i + 1) else {
+                                                return Err(EvalError {
+                                                     msg: "& found in closure without variadic argument name".to_string() 
+                                                });
+                                            };
+                                            let mut children = vec![];
+
+                                            let mut i2 = 0;
+                                            loop {
+                                                let Some(param) = params.get(i2) else {
+                                                    break;
+                                                };
+                                                children.push(param.clone());
+                                                i2 += 1;
+                                            }
+                                            closure_env
+                                                .set(name.to_owned(), DataType::List(children));
+                                            break;
+                                        }
                                         (Some(name), Some(param)) => (name, param),
                                         (None, None) => {
                                             break;
