@@ -119,29 +119,31 @@ fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataType, E
                         });
                     }
                 }
-                Some(DataType::Symbol(val)) if *val == "if".to_string() => match children.get(1) {
-                    Some(DataType::Bool(false) | DataType::Nil()) => {
-                        if let Some(arg) = children.get(3) {
-                            return eval(arg, repl_env);
-                        } else {
-                            return Ok(DataType::Nil());
-                        }
-                    }
-                    Some(_) => {
-                        if let Some(arg) = children.get(2) {
-                            return eval(arg, repl_env);
-                        } else {
-                            return Err(EvalError {
-                                msg: "No body for if expression".to_string(),
-                            });
-                        }
-                    }
-                    None => {
+                Some(DataType::Symbol(val)) if *val == "if".to_string() => {
+                    let Some(condition) = children.get(1) else {
                         return Err(EvalError {
                             msg: "No condition for if expression".to_string(),
                         });
+                    };
+                    match eval(condition, repl_env)? {
+                        DataType::Bool(false) | DataType::Nil() => {
+                            if let Some(arg) = children.get(3) {
+                                return eval(arg, repl_env);
+                            } else {
+                                return Ok(DataType::Nil());
+                            }
+                        }
+                        _ => {
+                            if let Some(arg) = children.get(2) {
+                                return eval(arg, repl_env);
+                            } else {
+                                return Err(EvalError {
+                                    msg: "No body for if expression".to_string(),
+                                });
+                            }
+                        }
                     }
-                },
+                }
                 Some(DataType::Symbol(val)) if *val == "fn*".to_string() => {
                     if let Some(DataType::List(params)) = children.get(1) {
                         let param_names = params
@@ -357,6 +359,10 @@ fn create_repl_env() -> Environment {
 
 fn main() {
     let mut repl_env = create_repl_env();
+    rep(
+        "(def! not (fn* (a) (if a false true)))".to_string(),
+        &mut repl_env,
+    );
     loop {
         print!("user> ");
         stdout()
