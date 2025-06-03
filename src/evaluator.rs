@@ -39,78 +39,33 @@ impl Environment {
     }
 }
 
+// "Why does it have to be all in one function?" dont ask.
 pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataType, EvalError> {
     let mut ast = ast;
     let repl_env = repl_env;
+
     loop {
         match ast {
             DataType::List(children) => {
                 match children.first() {
                     Some(DataType::Symbol(val)) if *val == "def!".to_string() => {
-                        if let (Some(DataType::Symbol(sym)), Some(val)) =
-                            (children.get(1), children.get(2))
-                        {
-                            let evaluated_val = eval(val, repl_env)?;
-                            repl_env.set(sym.to_owned(), evaluated_val.clone());
-                            return Ok(evaluated_val);
-                        } else {
-                            return Err(EvalError {
-                                msg: "Incorrect usage of def!".to_string(),
-                            });
-                        }
+                        return eval_def(&children[1..], repl_env);
                     }
+
                     Some(DataType::Symbol(val)) if *val == "let*".to_string() => {
-                        *repl_env = Environment::new(Some(Box::new(repl_env.clone())));
-
-                        if let (Some(DataType::List(children)), Some(data)) =
-                            (children.get(1), children.get(2))
-                        {
-                            let mut i = 0;
-                            loop {
-                                match children.get(i) {
-                                    Some(DataType::Symbol(val1)) => {
-                                        if let Some(val2) = children.get(i + 1) {
-                                            repl_env.set(val1.to_owned(), val2.clone());
-                                        } else {
-                                            return Err(EvalError {
-                                    msg: "Each symbol in a let* environment should have a value"
-                                        .to_string(),
-                                });
-                                        }
-                                    }
-                                    Some(_) => {
-                                        return Err(EvalError {
-                                            msg: "Invalid symbol to set in let*".to_string(),
-                                        });
-                                    }
-                                    None => {
-                                        break;
-                                    }
-                                }
-                                i += 2;
-                            }
-
-                            ast = data;
-                            continue;
-                        } else {
-                            return Err(EvalError {
-                                msg: "Incorrect arguments for let*".to_string(),
-                            });
-                        }
+                        match prepare_tail_call_let(&children[1..], repl_env, &mut ast) {
+                            Some(e) => return Err(e),
+                            None => continue,
+                        };
                     }
+
                     Some(DataType::Symbol(val)) if *val == "do".to_string() => {
-                        for child in &children[1..children.len() - 2] {
-                            let _ = eval(child, repl_env);
-                        }
-                        if let Some(final_child) = children.last() {
-                            ast = final_child;
-                            continue;
-                        } else {
-                            return Err(EvalError {
-                                msg: "No arguments given for do".to_string(),
-                            });
-                        }
+                        match prepare_tail_call_do(&children[1..], repl_env, &mut ast) {
+                            Some(e) => return Err(e),
+                            None => continue,
+                        };
                     }
+
                     Some(DataType::Symbol(val)) if *val == "if".to_string() => {
                         let Some(condition) = children.get(1) else {
                             return Err(EvalError {
@@ -138,6 +93,7 @@ pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataTyp
                             }
                         }
                     }
+
                     Some(DataType::Symbol(val)) if *val == "fn*".to_string() => {
                         if let Some(DataType::List(params)) = children.get(1) {
                             let param_names = params
@@ -155,10 +111,12 @@ pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataTyp
                                     }
                                 })
                                 .collect::<Result<Vec<String>, EvalError>>()?;
+
                             let closure_env = Environment {
                                 outer: Some(Box::new(repl_env.clone())),
                                 data: HashMap::new(),
                             };
+
                             let Some(closure_body_ref) = children.get(2) else {
                                 return Err(EvalError {
                                     msg: "No body for closure".to_string(),
@@ -170,46 +128,53 @@ pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataTyp
                             return Ok(DataType::Function(Rc::new(
                                 move |params: &[DataType]| -> Result<DataType, EvalError> {
                                     let mut closure_env = closure_env.clone();
-
                                     let mut i = 0;
-                                    loop {
-                                        let (name, param) =
-                                            match (param_names.get(i), params.get(i)) {
-                                                (Some(ampersand), Some(_)) if ampersand == "&" => {
-                                                    let Some(name) = param_names.get(i + 1) else {
-                                                        return Err(EvalError {
-                                            msg:
-                                                "& found in closure without variadic argument name"
-                                                    .to_string(),
-                                        });
-                                                    };
-                                                    let mut children = vec![];
 
-                                                    let mut i2 = 0;
-                                                    loop {
-                                                        let Some(param) = params.get(i2) else {
-                                                            break;
-                                                        };
-                                                        children.push(param.clone());
-                                                        i2 += 1;
-                                                    }
-                                                    closure_env.set(
-                                                        name.to_owned(),
-                                                        DataType::List(children),
-                                                    );
-                                                    break;
-                                                }
-                                                (Some(name), Some(param)) => (name, param),
-                                                (None, None) => {
-                                                    break;
-                                                }
-                                                _ => {
+                                    loop {
+                                        let (name, param) = match (
+                                            param_names.get(i),
+                                            params.get(i),
+                                        ) {
+                                            (Some(ampersand), Some(_)) if ampersand == "&" => {
+                                                let Some(name) = param_names.get(i + 1) else {
                                                     return Err(EvalError {
-                                        msg: "Parameters given do not match expected parameters"
-                                            .to_string(),
-                                    });
+                                                            msg:
+                                                                "& found in closure without variadic argument name"
+                                                                    .to_string(),
+                                                        });
+                                                };
+
+                                                let mut children = vec![];
+                                                let mut i2 = 0;
+
+                                                loop {
+                                                    let Some(param) = params.get(i2) else {
+                                                        break;
+                                                    };
+                                                    children.push(param.clone());
+                                                    i2 += 1;
                                                 }
-                                            };
+
+                                                closure_env
+                                                    .set(name.to_owned(), DataType::List(children));
+
+                                                break;
+                                            }
+
+                                            (Some(name), Some(param)) => (name, param),
+
+                                            (None, None) => {
+                                                break;
+                                            }
+
+                                            _ => {
+                                                return Err(EvalError {
+                                                    msg: "Parameters given do not match expected parameters"
+                                                        .to_string(),
+                                                });
+                                            }
+                                        };
+
                                         closure_env.set(name.to_owned(), param.clone());
                                         i += 1;
                                     }
@@ -243,6 +208,7 @@ pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataTyp
                     .iter()
                     .map(|child| eval(child, repl_env))
                     .collect::<Result<_, EvalError>>()?;
+
                 return Ok(DataType::Vector(evaluated));
             }
 
@@ -254,8 +220,10 @@ pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataTyp
                         Err(err) => Err(err),
                     })
                     .collect::<Result<HashMap<String, DataType>, EvalError>>()?;
+
                 return Ok(DataType::Dictionary(evaluated));
             }
+
             DataType::Symbol(sym) => {
                 if let Some(val) = repl_env.get(sym) {
                     return Ok(val);
@@ -265,7 +233,84 @@ pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataTyp
                     });
                 };
             }
+
             _ => return Ok(ast.clone()),
         }
+    }
+}
+
+fn eval_def(args: &[DataType], env: &mut Environment) -> Result<DataType, EvalError> {
+    if let (Some(DataType::Symbol(sym)), Some(val)) = (args.get(0), args.get(1)) {
+        let evaluated_val = eval(val, env)?;
+        env.set(sym.to_owned(), evaluated_val.clone());
+
+        return Ok(evaluated_val);
+    } else {
+        return Err(EvalError {
+            msg: "Incorrect usage of def!".to_string(),
+        });
+    }
+}
+
+fn prepare_tail_call_let<'a>(
+    args: &'a [DataType],
+    env: &mut Environment,
+    ast: &mut &'a DataType,
+) -> Option<EvalError> {
+    if let (Some(DataType::List(children)), Some(data)) = (args.get(0), args.get(1)) {
+        *env = Environment::new(Some(Box::new(env.clone())));
+        let mut i = 0;
+
+        loop {
+            match children.get(i) {
+                Some(DataType::Symbol(val1)) => {
+                    if let Some(val2) = children.get(i + 1) {
+                        env.set(val1.to_owned(), val2.clone());
+                    } else {
+                        return Some(EvalError {
+                            msg: "Each symbol in a let* environment should have a value"
+                                .to_string(),
+                        });
+                    };
+                }
+
+                Some(_) => {
+                    return Some(EvalError {
+                        msg: "Invalid symbol to set in let*".to_string(),
+                    });
+                }
+
+                None => {
+                    break;
+                }
+            }
+
+            i += 2;
+        }
+
+        *ast = data;
+        return None;
+    } else {
+        return Some(EvalError {
+            msg: "Incorrect arguments for let*".to_string(),
+        });
+    }
+}
+
+fn prepare_tail_call_do<'a>(
+    args: &'a [DataType],
+    env: &mut Environment,
+    ast: &mut &'a DataType,
+) -> Option<EvalError> {
+    for child in &args[..args.len() - 1] {
+        let _ = eval(child, env);
+    }
+    if let Some(final_child) = args.last() {
+        *ast = final_child;
+        None
+    } else {
+        return Some(EvalError {
+            msg: "No arguments given for do".to_string(),
+        });
     }
 }

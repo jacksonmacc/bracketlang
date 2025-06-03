@@ -8,6 +8,7 @@ use env::{
     LESS_THAN_OR_EQUALS, LIST, LIST_CHECK, LIST_EMPTY, LIST_LEN, MULTIPLICATION, PRINT,
     SUBTRACTION,
 };
+
 use evaluator::eval;
 use reader::{ParseError, Reader, get_regex, tokenize};
 use variable_type::DataType;

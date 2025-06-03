@@ -296,3 +296,25 @@ fn test_simple_def() {
         assert!(false);
     }
 }
+
+#[test]
+fn test_simple_let() {
+    let mut env = create_repl_env();
+    let result = eval(&read("(let* (c 3) c)".to_string()).unwrap(), &mut env).unwrap();
+    if let DataType::Integer(int) = result {
+        assert_eq!(int, 3);
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn test_simple_do() {
+    let mut env = create_repl_env();
+    let result = eval(&read("(do 1 2 3 4)".to_string()).unwrap(), &mut env).unwrap();
+    if let DataType::Integer(int) = result {
+        assert_eq!(int, 4);
+    } else {
+        assert!(false);
+    }
+}
