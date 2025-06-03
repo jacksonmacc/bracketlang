@@ -1,7 +1,6 @@
-use crate::{
-    EvalError,
-    reader::{DataType, DataType::*},
-};
+use crate::evaluator::EvalError;
+use crate::variable_type::DataType;
+use crate::variable_type::DataType::*;
 
 pub struct CoreFunction {
     pub id: &'static str,
