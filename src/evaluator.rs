@@ -103,7 +103,8 @@ pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataTyp
                             let _ = eval(child, repl_env);
                         }
                         if let Some(final_child) = children.last() {
-                            return eval(final_child, repl_env);
+                            ast = final_child;
+                            continue;
                         } else {
                             return Err(EvalError {
                                 msg: "No arguments given for do".to_string(),
@@ -119,14 +120,16 @@ pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataTyp
                         match eval(condition, repl_env)? {
                             DataType::Bool(false) | DataType::Nil() => {
                                 if let Some(arg) = children.get(3) {
-                                    return eval(arg, repl_env);
+                                    ast = arg;
+                                    continue;
                                 } else {
                                     return Ok(DataType::Nil());
                                 }
                             }
                             _ => {
                                 if let Some(arg) = children.get(2) {
-                                    return eval(arg, repl_env);
+                                    ast = arg;
+                                    continue;
                                 } else {
                                     return Err(EvalError {
                                         msg: "No body for if expression".to_string(),
