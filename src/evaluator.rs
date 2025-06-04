@@ -39,7 +39,6 @@ impl Environment {
     }
 }
 
-// "Why does it have to be all in one function?" dont ask.
 pub fn eval<'a>(
     ast: &'a DataType,
     repl_env: Rc<RefCell<Environment>>,
@@ -67,38 +66,23 @@ pub fn eval<'a>(
                     }
 
                     Some(DataType::Symbol(val)) if *val == "do".to_string() => {
-                        match prepare_tail_call_do(&children[1..], &repl_env, &mut ast) {
-                            Some(e) => return Err(e),
-                            None => continue,
+                        match prepare_tail_call_do(&children[1..], &repl_env) {
+                            Ok(new_ast) => {
+                                ast = new_ast;
+                                continue;
+                            }
+                            Err(e) => return Err(e),
                         };
                     }
 
                     Some(DataType::Symbol(val)) if *val == "if".to_string() => {
-                        let Some(condition) = children.get(1) else {
-                            return Err(EvalError {
-                                msg: "No condition for if expression".to_string(),
-                            });
+                        match prepare_tail_call_if(&children[1..], &repl_env) {
+                            Ok(new_ast) => {
+                                ast = new_ast;
+                                continue;
+                            }
+                            Err(e) => return Err(e),
                         };
-                        match eval(condition, repl_env.clone())? {
-                            DataType::Bool(false) | DataType::Nil() => {
-                                if let Some(arg) = children.get(3) {
-                                    ast = arg;
-                                    continue;
-                                } else {
-                                    return Ok(DataType::Nil());
-                                }
-                            }
-                            _ => {
-                                if let Some(arg) = children.get(2) {
-                                    ast = arg;
-                                    continue;
-                                } else {
-                                    return Err(EvalError {
-                                        msg: "No body for if expression".to_string(),
-                                    });
-                                }
-                            }
-                        }
                     }
 
                     Some(DataType::Symbol(val)) if *val == "fn*".to_string() => {
@@ -304,17 +288,44 @@ fn prepare_tail_call_let<'a>(
 fn prepare_tail_call_do<'a>(
     args: &'a [DataType],
     env: &Rc<RefCell<Environment>>,
-    ast: &mut &'a DataType,
-) -> Option<EvalError> {
+) -> Result<&'a DataType, EvalError> {
     for child in &args[..args.len() - 1] {
         let _ = eval(child, env.clone());
     }
     if let Some(final_child) = args.last() {
-        *ast = final_child;
-        None
+        Ok(final_child)
     } else {
-        return Some(EvalError {
+        return Err(EvalError {
             msg: "No arguments given for do".to_string(),
         });
+    }
+}
+
+fn prepare_tail_call_if<'a>(
+    args: &'a [DataType],
+    env: &Rc<RefCell<Environment>>,
+) -> Result<&'a DataType, EvalError> {
+    let Some(condition) = args.get(0) else {
+        return Err(EvalError {
+            msg: "No condition for if expression".to_string(),
+        });
+    };
+    match eval(condition, env.clone())? {
+        DataType::Bool(false) | DataType::Nil() => {
+            if let Some(arg) = args.get(2) {
+                return Ok(arg);
+            } else {
+                return Ok(&DataType::Nil());
+            }
+        }
+        _ => {
+            if let Some(arg) = args.get(1) {
+                return Ok(arg);
+            } else {
+                return Err(EvalError {
+                    msg: "No body for if expression".to_string(),
+                });
+            }
+        }
     }
 }

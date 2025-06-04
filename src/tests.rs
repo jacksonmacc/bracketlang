@@ -278,3 +278,17 @@ fn test_simple_do() {
         assert!(false);
     }
 }
+
+
+#[test]
+#[should_panic]
+fn test_env_leak() {
+    let env = create_repl_env();
+    let result = eval(&read("(let* (c 18) c)".to_string()).unwrap(), env.clone()).unwrap();
+        if let DataType::Integer(int) = result {
+        assert_eq!(int, 18);
+    } else {
+        assert!(false);
+    }
+    let _ = eval(&read("c".to_string()).unwrap(), env.clone()).unwrap();
+}
