@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::variable_type::DataType;
 
@@ -9,14 +9,14 @@ pub struct EvalError {
 
 #[derive(Clone)]
 pub struct Environment {
-    outer: Option<Box<Self>>,
+    outer: Option<Rc<RefCell<Self>>>,
     data: HashMap<String, DataType>,
 }
 
 impl Environment {
-    pub fn new(outer: Option<Box<Self>>) -> Environment {
+    pub fn new(outer: Option<Rc<RefCell<Self>>>) -> Environment {
         Self {
-            outer: outer,
+            outer,
             data: HashMap::new(),
         }
     }
@@ -33,34 +33,41 @@ impl Environment {
                     return None;
                 };
 
-                outer_env.get(sym)
+                outer_env.borrow_mut().get(sym)
             }
         }
     }
 }
 
 // "Why does it have to be all in one function?" dont ask.
-pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataType, EvalError> {
+pub fn eval<'a>(
+    ast: &'a DataType,
+    repl_env: Rc<RefCell<Environment>>,
+) -> Result<DataType, EvalError> {
     let mut ast = ast;
-    let repl_env = repl_env;
+    let mut repl_env: Rc<RefCell<Environment>> = repl_env;
 
     loop {
         match ast {
             DataType::List(children) => {
                 match children.first() {
                     Some(DataType::Symbol(val)) if *val == "def!".to_string() => {
-                        return eval_def(&children[1..], repl_env);
+                        return eval_def(&children[1..], repl_env.clone());
                     }
 
                     Some(DataType::Symbol(val)) if *val == "let*".to_string() => {
-                        match prepare_tail_call_let(&children[1..], repl_env, &mut ast) {
-                            Some(e) => return Err(e),
-                            None => continue,
+                        match prepare_tail_call_let(&children[1..], repl_env) {
+                            Ok((new_ast, new_env)) => {
+                                ast = new_ast;
+                                repl_env = Rc::new(RefCell::new(new_env));
+                                continue;
+                            }
+                            Err(e) => return Err(e),
                         };
                     }
 
                     Some(DataType::Symbol(val)) if *val == "do".to_string() => {
-                        match prepare_tail_call_do(&children[1..], repl_env, &mut ast) {
+                        match prepare_tail_call_do(&children[1..], &repl_env, &mut ast) {
                             Some(e) => return Err(e),
                             None => continue,
                         };
@@ -72,7 +79,7 @@ pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataTyp
                                 msg: "No condition for if expression".to_string(),
                             });
                         };
-                        match eval(condition, repl_env)? {
+                        match eval(condition, repl_env.clone())? {
                             DataType::Bool(false) | DataType::Nil() => {
                                 if let Some(arg) = children.get(3) {
                                     ast = arg;
@@ -113,7 +120,7 @@ pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataTyp
                                 .collect::<Result<Vec<String>, EvalError>>()?;
 
                             let closure_env = Environment {
-                                outer: Some(Box::new(repl_env.clone())),
+                                outer: Some(repl_env),
                                 data: HashMap::new(),
                             };
 
@@ -179,7 +186,7 @@ pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataTyp
                                         i += 1;
                                     }
 
-                                    eval(&closure_body, &mut closure_env)
+                                    eval(&closure_body, Rc::new(RefCell::new(closure_env.clone())))
                                 },
                             )));
                         } else {
@@ -193,7 +200,7 @@ pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataTyp
 
                 let evaluated: Vec<DataType> = children
                     .iter()
-                    .map(|child| eval(child, repl_env))
+                    .map(|child| eval(child, repl_env.clone()))
                     .collect::<Result<_, EvalError>>()?;
 
                 match evaluated.first() {
@@ -206,7 +213,7 @@ pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataTyp
             DataType::Vector(list) => {
                 let evaluated: Vec<DataType> = list
                     .iter()
-                    .map(|child| eval(child, repl_env))
+                    .map(|child| eval(child, repl_env.clone()))
                     .collect::<Result<_, EvalError>>()?;
 
                 return Ok(DataType::Vector(evaluated));
@@ -215,7 +222,7 @@ pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataTyp
             DataType::Dictionary(dict) => {
                 let evaluated: HashMap<String, DataType> = dict
                     .iter()
-                    .map(|child| match eval(child.1, repl_env) {
+                    .map(|child| match eval(child.1, repl_env.clone()) {
                         Ok(result) => Ok((child.0.clone(), result)),
                         Err(err) => Err(err),
                     })
@@ -225,7 +232,7 @@ pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataTyp
             }
 
             DataType::Symbol(sym) => {
-                if let Some(val) = repl_env.get(sym) {
+                if let Some(val) = repl_env.borrow_mut().get(sym) {
                     return Ok(val);
                 } else {
                     return Err(EvalError {
@@ -239,10 +246,10 @@ pub fn eval<'a>(ast: &'a DataType, repl_env: &mut Environment) -> Result<DataTyp
     }
 }
 
-fn eval_def(args: &[DataType], env: &mut Environment) -> Result<DataType, EvalError> {
+fn eval_def(args: &[DataType], env: Rc<RefCell<Environment>>) -> Result<DataType, EvalError> {
     if let (Some(DataType::Symbol(sym)), Some(val)) = (args.get(0), args.get(1)) {
-        let evaluated_val = eval(val, env)?;
-        env.set(sym.to_owned(), evaluated_val.clone());
+        let evaluated_val = eval(val, env.clone())?;
+        env.borrow_mut().set(sym.to_owned(), evaluated_val.clone());
 
         return Ok(evaluated_val);
     } else {
@@ -254,20 +261,19 @@ fn eval_def(args: &[DataType], env: &mut Environment) -> Result<DataType, EvalEr
 
 fn prepare_tail_call_let<'a>(
     args: &'a [DataType],
-    env: &mut Environment,
-    ast: &mut &'a DataType,
-) -> Option<EvalError> {
+    env: Rc<RefCell<Environment>>,
+) -> Result<(&'a DataType, Environment), EvalError> {
     if let (Some(DataType::List(children)), Some(data)) = (args.get(0), args.get(1)) {
-        *env = Environment::new(Some(Box::new(env.clone())));
+        let mut new_env = Environment::new(Some(env.clone()));
         let mut i = 0;
 
         loop {
             match children.get(i) {
                 Some(DataType::Symbol(val1)) => {
                     if let Some(val2) = children.get(i + 1) {
-                        env.set(val1.to_owned(), val2.clone());
+                        new_env.set(val1.to_owned(), val2.clone());
                     } else {
-                        return Some(EvalError {
+                        return Err(EvalError {
                             msg: "Each symbol in a let* environment should have a value"
                                 .to_string(),
                         });
@@ -275,7 +281,7 @@ fn prepare_tail_call_let<'a>(
                 }
 
                 Some(_) => {
-                    return Some(EvalError {
+                    return Err(EvalError {
                         msg: "Invalid symbol to set in let*".to_string(),
                     });
                 }
@@ -287,11 +293,9 @@ fn prepare_tail_call_let<'a>(
 
             i += 2;
         }
-
-        *ast = data;
-        return None;
+        return Ok((data, new_env));
     } else {
-        return Some(EvalError {
+        return Err(EvalError {
             msg: "Incorrect arguments for let*".to_string(),
         });
     }
@@ -299,11 +303,11 @@ fn prepare_tail_call_let<'a>(
 
 fn prepare_tail_call_do<'a>(
     args: &'a [DataType],
-    env: &mut Environment,
+    env: &Rc<RefCell<Environment>>,
     ast: &mut &'a DataType,
 ) -> Option<EvalError> {
     for child in &args[..args.len() - 1] {
-        let _ = eval(child, env);
+        let _ = eval(child, env.clone());
     }
     if let Some(final_child) = args.last() {
         *ast = final_child;

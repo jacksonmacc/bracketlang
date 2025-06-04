@@ -1,4 +1,5 @@
 use std::{
+    cell::RefCell,
     io::{Write, stdin, stdout},
     rc::Rc,
 };
@@ -33,7 +34,7 @@ fn print(input: DataType) -> String {
     format!("{:?}", input)
 }
 
-fn rep(input: String, repl_env: &mut Environment) -> String {
+fn rep(input: String, repl_env: Rc<RefCell<Environment>>) -> String {
     let ast = match read(input) {
         Ok(r) => r,
         Err(e) => return e.msg,
@@ -47,7 +48,7 @@ fn rep(input: String, repl_env: &mut Environment) -> String {
     print_result
 }
 
-fn create_repl_env() -> Environment {
+fn create_repl_env() -> Rc<RefCell<Environment>> {
     let mut repl_env = Environment::new(None);
 
     let core_functions = vec![
@@ -71,14 +72,14 @@ fn create_repl_env() -> Environment {
         repl_env.set(item.id.to_string(), DataType::Function(Rc::new(item.func)));
     }
 
-    repl_env
+    Rc::new(RefCell::new(repl_env))
 }
 
 fn main() {
-    let mut repl_env = create_repl_env();
+    let repl_env = create_repl_env();
     rep(
         "(def! not (fn* (a) (if a false true)))".to_string(),
-        &mut repl_env,
+        repl_env.clone(),
     );
     loop {
         print!("user> ");
@@ -98,6 +99,6 @@ fn main() {
             break;
         }
 
-        println!("{}", rep(user_input, &mut repl_env))
+        println!("{}", rep(user_input, repl_env.clone()))
     }
 }
