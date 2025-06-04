@@ -43,11 +43,11 @@ pub fn eval<'a>(
     ast: &'a DataType,
     repl_env: Rc<RefCell<Environment>>,
 ) -> Result<DataType, EvalError> {
-    let mut ast = ast;
+    let mut ast = Box::new(ast.clone()); // TODO: Lots of memory usage here...
     let mut repl_env: Rc<RefCell<Environment>> = repl_env;
 
     loop {
-        match ast {
+        match *ast {
             DataType::List(children) => {
                 match children.first() {
                     Some(DataType::Symbol(val)) if *val == "def!".to_string() => {
@@ -57,7 +57,7 @@ pub fn eval<'a>(
                     Some(DataType::Symbol(val)) if *val == "let*".to_string() => {
                         match prepare_tail_call_let(&children[1..], repl_env) {
                             Ok((new_ast, new_env)) => {
-                                ast = new_ast;
+                                ast = Box::new(new_ast.clone());
                                 repl_env = Rc::new(RefCell::new(new_env));
                                 continue;
                             }
@@ -68,7 +68,7 @@ pub fn eval<'a>(
                     Some(DataType::Symbol(val)) if *val == "do".to_string() => {
                         match prepare_tail_call_do(&children[1..], &repl_env) {
                             Ok(new_ast) => {
-                                ast = new_ast;
+                                ast = Box::new(new_ast.clone());
                                 continue;
                             }
                             Err(e) => return Err(e),
@@ -78,7 +78,7 @@ pub fn eval<'a>(
                     Some(DataType::Symbol(val)) if *val == "if".to_string() => {
                         match prepare_tail_call_if(&children[1..], &repl_env) {
                             Ok(new_ast) => {
-                                ast = new_ast;
+                                ast = Box::new(new_ast.clone());
                                 continue;
                             }
                             Err(e) => return Err(e),
@@ -97,7 +97,12 @@ pub fn eval<'a>(
                     .collect::<Result<_, EvalError>>()?;
 
                 match evaluated.first() {
-                    Some(DataType::Closure(function)) => return Ok(function.func(&evaluated[1..])?),
+                    Some(DataType::Closure(function)) => {
+                        let (new_ast, new_env) = function.prepare_tail_call(&evaluated[1..])?;
+                        ast = Box::new(new_ast.clone());
+                        repl_env = new_env.clone();
+                        continue;
+                    }
 
                     Some(DataType::NativeFunction(function)) => {
                         return Ok(function.1(&evaluated[1..])?);
@@ -129,7 +134,7 @@ pub fn eval<'a>(
             }
 
             DataType::Symbol(sym) => {
-                if let Some(val) = repl_env.borrow_mut().get(sym) {
+                if let Some(val) = repl_env.borrow_mut().get(&sym) {
                     return Ok(val);
                 } else {
                     return Err(EvalError {
@@ -138,7 +143,7 @@ pub fn eval<'a>(
                 };
             }
 
-            _ => return Ok(ast.clone()),
+            _ => return Ok((*ast).clone()),
         }
     }
 }
@@ -278,5 +283,64 @@ fn eval_closure(args: &[DataType], env: Rc<RefCell<Environment>>) -> Result<Data
         return Err(EvalError {
             msg: "Expected parameter list for function".to_string(),
         });
+    }
+}
+
+
+impl Closure {
+    pub fn func(&self, args: &[DataType]) -> Result<DataType, EvalError> {
+        let (ast, environment) = self.prepare_tail_call(args)?;
+
+        eval(ast, environment)
+    }
+
+    pub fn prepare_tail_call(&self, args: &[DataType]) -> Result<(&DataType, Rc<RefCell<Environment>>), EvalError> {
+        let mut i = 0;
+
+        loop {
+            let (name, param) = match (self.params.get(i), args.get(i)) {
+                (Some(ampersand), Some(_)) if ampersand == "&" => {
+                    let Some(name) = self.params.get(i + 1) else {
+                        return Err(EvalError {
+                            msg: "& found in closure without variadic argument name".to_string(),
+                        });
+                    };
+
+                    let mut children = vec![];
+                    let mut i2 = 0;
+
+                    loop {
+                        let Some(param) = args.get(i2) else {
+                            break;
+                        };
+                        children.push(param.clone());
+                        i2 += 1;
+                    }
+
+                    self.env
+                        .borrow_mut()
+                        .set(name.to_owned(), DataType::List(children));
+
+                    break;
+                }
+
+                (Some(name), Some(param)) => (name, param),
+
+                (None, None) => {
+                    break;
+                }
+
+                _ => {
+                    return Err(EvalError {
+                        msg: "Parameters given do not match expected parameters".to_string(),
+                    });
+                }
+            };
+
+            self.env.borrow_mut().set(name.to_owned(), param.clone());
+            i += 1;
+        }
+
+        Ok((&self.ast, self.env.clone()))
     }
 }

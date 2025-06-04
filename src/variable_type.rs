@@ -1,64 +1,12 @@
 use std::{cell::RefCell, collections::HashMap, ptr::addr_of, rc::Rc};
 
-use crate::evaluator::{Environment, EvalError, eval};
+use crate::evaluator::{Environment, EvalError};
 
 #[derive(Clone)]
 pub struct Closure {
     pub ast: Box<DataType>,
     pub params: Vec<String>,
     pub env: Rc<RefCell<Environment>>,
-}
-
-impl Closure {
-    pub fn func(&self, args: &[DataType]) -> Result<DataType, EvalError> {
-        let mut i = 0;
-
-        loop {
-            let (name, param) = match (self.params.get(i), args.get(i)) {
-                (Some(ampersand), Some(_)) if ampersand == "&" => {
-                    let Some(name) = self.params.get(i + 1) else {
-                        return Err(EvalError {
-                            msg: "& found in closure without variadic argument name".to_string(),
-                        });
-                    };
-
-                    let mut children = vec![];
-                    let mut i2 = 0;
-
-                    loop {
-                        let Some(param) = args.get(i2) else {
-                            break;
-                        };
-                        children.push(param.clone());
-                        i2 += 1;
-                    }
-
-                    self.env
-                        .borrow_mut()
-                        .set(name.to_owned(), DataType::List(children));
-
-                    break;
-                }
-
-                (Some(name), Some(param)) => (name, param),
-
-                (None, None) => {
-                    break;
-                }
-
-                _ => {
-                    return Err(EvalError {
-                        msg: "Parameters given do not match expected parameters".to_string(),
-                    });
-                }
-            };
-
-            self.env.borrow_mut().set(name.to_owned(), param.clone());
-            i += 1;
-        }
-
-        eval(&self.ast, self.env.clone())
-    }
 }
 
 #[derive(Clone)]
