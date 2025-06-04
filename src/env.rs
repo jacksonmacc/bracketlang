@@ -1,13 +1,50 @@
-use crate::evaluator::EvalError;
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use crate::evaluator::{Environment, EvalError};
 use crate::variable_type::DataType;
 use crate::variable_type::DataType::*;
 
-pub struct CoreFunction {
+struct CoreFunction {
     pub id: &'static str,
     pub func: fn(&[DataType]) -> Result<DataType, EvalError>,
 }
 
-pub const ADDITION: CoreFunction = CoreFunction {
+#[allow(unused_assignments)]
+pub fn create_repl_env() -> Rc<RefCell<Environment>> {
+    let mut repl_env = Environment::new(None);
+
+    macro_rules! set_function {
+        ($($l:ident),*) => {
+            let mut i = 0;
+            $ (
+                repl_env.set($l.id.to_string(), DataType::BuiltinFunction((i, &$l.func)));
+                i += 1;
+            )*
+        };
+    }
+
+    set_function!(
+        ADDITION,
+        SUBTRACTION,
+        DIVISION,
+        MULTIPLICATION,
+        PRINT,
+        LIST,
+        LIST_CHECK,
+        LIST_EMPTY,
+        LIST_LEN,
+        EQUALS,
+        GREATER_THAN,
+        LESS_THAN,
+        LESS_THAN_OR_EQUALS,
+        GREATER_THAN_OR_EQUALS
+    );
+
+    Rc::new(RefCell::new(repl_env))
+}
+
+const ADDITION: CoreFunction = CoreFunction {
     id: "+",
     func: |values: &[DataType]| {
         if values.len() == 2 {
@@ -30,7 +67,7 @@ pub const ADDITION: CoreFunction = CoreFunction {
     },
 };
 
-pub const MULTIPLICATION: CoreFunction = CoreFunction {
+const MULTIPLICATION: CoreFunction = CoreFunction {
     id: "*",
     func: |values: &[DataType]| {
         if values.len() == 2 {
@@ -50,7 +87,7 @@ pub const MULTIPLICATION: CoreFunction = CoreFunction {
         }
     },
 };
-pub const SUBTRACTION: CoreFunction = CoreFunction {
+const SUBTRACTION: CoreFunction = CoreFunction {
     id: "-",
     func: |values: &[DataType]| {
         if values.len() == 2 {
@@ -71,7 +108,7 @@ pub const SUBTRACTION: CoreFunction = CoreFunction {
     },
 };
 
-pub const DIVISION: CoreFunction = CoreFunction {
+const DIVISION: CoreFunction = CoreFunction {
     id: "/",
     func: |values: &[DataType]| {
         if values.len() == 2 {
@@ -92,7 +129,7 @@ pub const DIVISION: CoreFunction = CoreFunction {
     },
 };
 
-pub const PRINT: CoreFunction = CoreFunction {
+const PRINT: CoreFunction = CoreFunction {
     id: "prn",
     func: |values: &[DataType]| {
         println!(
@@ -108,7 +145,7 @@ pub const PRINT: CoreFunction = CoreFunction {
     },
 };
 
-pub const LIST: CoreFunction = CoreFunction {
+const LIST: CoreFunction = CoreFunction {
     id: "list",
     func: |values: &[DataType]| {
         let mut children = vec![];
@@ -119,7 +156,7 @@ pub const LIST: CoreFunction = CoreFunction {
     },
 };
 
-pub const LIST_CHECK: CoreFunction = CoreFunction {
+const LIST_CHECK: CoreFunction = CoreFunction {
     id: "list?",
     func: |values: &[DataType]| match values.first() {
         Some(DataType::List(_)) => Ok(DataType::Bool(true)),
@@ -130,7 +167,7 @@ pub const LIST_CHECK: CoreFunction = CoreFunction {
     },
 };
 
-pub const LIST_EMPTY: CoreFunction = CoreFunction {
+const LIST_EMPTY: CoreFunction = CoreFunction {
     id: "empty?",
     func: |values: &[DataType]| {
         if let Some(DataType::List(children)) = values.first() {
@@ -147,7 +184,7 @@ pub const LIST_EMPTY: CoreFunction = CoreFunction {
     },
 };
 
-pub const LIST_LEN: CoreFunction = CoreFunction {
+const LIST_LEN: CoreFunction = CoreFunction {
     id: "count",
     func: |values: &[DataType]| {
         if let Some(DataType::List(children)) = values.first() {
@@ -168,7 +205,7 @@ pub const LIST_LEN: CoreFunction = CoreFunction {
     },
 };
 
-pub const EQUALS: CoreFunction = CoreFunction {
+const EQUALS: CoreFunction = CoreFunction {
     id: "=",
     func: |values: &[DataType]| {
         let (Some(var1), Some(var2)) = (values.get(0), values.get(1)) else {
@@ -182,7 +219,7 @@ pub const EQUALS: CoreFunction = CoreFunction {
 };
 
 // TODO: Write a macro for these
-pub const GREATER_THAN: CoreFunction = CoreFunction {
+const GREATER_THAN: CoreFunction = CoreFunction {
     id: ">",
     func: |values: &[DataType]| {
         if values.len() == 2 {
@@ -203,7 +240,7 @@ pub const GREATER_THAN: CoreFunction = CoreFunction {
     },
 };
 
-pub const LESS_THAN: CoreFunction = CoreFunction {
+const LESS_THAN: CoreFunction = CoreFunction {
     id: "<",
     func: |values: &[DataType]| {
         if values.len() == 2 {
@@ -224,7 +261,7 @@ pub const LESS_THAN: CoreFunction = CoreFunction {
     },
 };
 
-pub const GREATER_THAN_OR_EQUALS: CoreFunction = CoreFunction {
+const GREATER_THAN_OR_EQUALS: CoreFunction = CoreFunction {
     id: ">=",
     func: |values: &[DataType]| {
         if values.len() == 2 {
@@ -245,7 +282,7 @@ pub const GREATER_THAN_OR_EQUALS: CoreFunction = CoreFunction {
     },
 };
 
-pub const LESS_THAN_OR_EQUALS: CoreFunction = CoreFunction {
+const LESS_THAN_OR_EQUALS: CoreFunction = CoreFunction {
     id: "<=",
     func: |values: &[DataType]| {
         if values.len() == 2 {

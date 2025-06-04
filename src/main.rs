@@ -4,17 +4,11 @@ use std::{
     rc::Rc,
 };
 
-use env::{
-    ADDITION, DIVISION, EQUALS, GREATER_THAN, GREATER_THAN_OR_EQUALS, LESS_THAN,
-    LESS_THAN_OR_EQUALS, LIST, LIST_CHECK, LIST_EMPTY, LIST_LEN, MULTIPLICATION, PRINT,
-    SUBTRACTION,
-};
-
 use evaluator::eval;
 use reader::{ParseError, Reader, get_regex, tokenize};
 use variable_type::DataType;
 
-use crate::evaluator::Environment;
+use crate::{env::create_repl_env, evaluator::Environment};
 
 mod env;
 mod evaluator;
@@ -46,33 +40,6 @@ fn rep(input: String, repl_env: Rc<RefCell<Environment>>) -> String {
     };
     let print_result = print(eval_result);
     print_result
-}
-
-fn create_repl_env() -> Rc<RefCell<Environment>> {
-    let mut repl_env = Environment::new(None);
-
-    let core_functions = vec![
-        ADDITION,
-        SUBTRACTION,
-        DIVISION,
-        MULTIPLICATION,
-        PRINT,
-        LIST,
-        LIST_CHECK,
-        LIST_EMPTY,
-        LIST_LEN,
-        EQUALS,
-        GREATER_THAN,
-        LESS_THAN,
-        LESS_THAN_OR_EQUALS,
-        GREATER_THAN_OR_EQUALS,
-    ];
-
-    for item in core_functions {
-        repl_env.set(item.id.to_string(), DataType::Function(Rc::new(item.func)));
-    }
-
-    Rc::new(RefCell::new(repl_env))
 }
 
 fn main() {

@@ -15,6 +15,7 @@ pub enum DataType {
     Vector(Vec<DataType>),
     Dictionary(HashMap<String, DataType>),
     Function(Rc<dyn Fn(&[DataType]) -> Result<DataType, EvalError>>),
+    BuiltinFunction((i8, &'static fn(&[DataType]) -> Result<DataType, EvalError>)),
 }
 
 impl PartialEq for DataType {
@@ -29,7 +30,10 @@ impl PartialEq for DataType {
             (Self::Vector(l0), Self::Vector(r0)) => l0 == r0,
             (Self::Dictionary(l0), Self::Dictionary(r0)) => l0 == r0,
             (Self::Function(l0), Self::Function(r0)) => addr_of!(l0) == addr_of!(r0),
-            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+            (Self::BuiltinFunction(l0), Self::BuiltinFunction(r0)) => {
+                r0.0 == l0.0
+            }
+            _ => false,
         }
     }
 }
@@ -71,6 +75,7 @@ impl std::fmt::Debug for DataType {
             DataType::Integer(num) => write!(f, "{}", num),
             DataType::String(str) => write!(f, "\"{}\"", str),
             DataType::Function(func) => write!(f, "{:p}", func),
+            DataType::BuiltinFunction(func) => write!(f, "{:p}", func),
         }
     }
 }
