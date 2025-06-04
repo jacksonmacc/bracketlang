@@ -79,8 +79,8 @@ impl std::fmt::Debug for DataType {
             DataType::Float(float) => write!(f, "{}", float),
             DataType::Integer(num) => write!(f, "{}", num),
             DataType::String(str) => write!(f, "\"{}\"", str),
-            DataType::Closure(func) => write!(f, "Closure: {:p}", func),
-            DataType::NativeFunction(func) => write!(f, "Native Function: {:p}", func),
+            DataType::Closure(func) => write!(f, "CL{:p}", func),
+            DataType::NativeFunction(func) => write!(f, "Fn{}", func.0),
         }
     }
 }

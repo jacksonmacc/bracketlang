@@ -48,6 +48,11 @@ fn main() {
         "(def! not (fn* (a) (if a false true)))".to_string(),
         repl_env.clone(),
     );
+    rep(
+        "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))".to_string(),
+        repl_env.clone(),
+    );
+    
     loop {
         print!("user> ");
         stdout()

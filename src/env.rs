@@ -1,7 +1,9 @@
 use std::cell::RefCell;
+use std::fs;
 use std::rc::Rc;
 
 use crate::evaluator::{Environment, EvalError};
+use crate::read;
 use crate::variable_type::DataType;
 use crate::variable_type::DataType::*;
 
@@ -38,7 +40,9 @@ pub fn create_repl_env() -> Rc<RefCell<Environment>> {
         GREATER_THAN,
         LESS_THAN,
         LESS_THAN_OR_EQUALS,
-        GREATER_THAN_OR_EQUALS
+        GREATER_THAN_OR_EQUALS,
+        READ_STR,
+        SLURP
     );
 
     Rc::new(RefCell::new(repl_env))
@@ -298,6 +302,52 @@ const LESS_THAN_OR_EQUALS: CoreFunction = CoreFunction {
         } else {
             Err(EvalError {
                 msg: "Incorrect number of arguments for subtraction".to_string(),
+            })
+        }
+    },
+};
+
+const READ_STR: CoreFunction = CoreFunction {
+    id: "read-str",
+    func: |values: &[DataType]| {
+        if values.len() == 1 {
+            match values.get(0) {
+                Some(String(str)) => match read(str.to_string()) {
+                    Ok(val) => Ok(val),
+                    Err(e) => Err(EvalError { msg: e.msg }),
+                },
+
+                _ => Err(EvalError {
+                    msg: "Incorrect arguments for read-str!".to_string(),
+                }),
+            }
+        } else {
+            Err(EvalError {
+                msg: "Incorrect number of arguments for read-str".to_string(),
+            })
+        }
+    },
+};
+
+const SLURP: CoreFunction = CoreFunction {
+    id: "slurp",
+    func: |values: &[DataType]| {
+        if values.len() == 1 {
+            match values.get(0) {
+                Some(String(path)) => match fs::read_to_string(path) {
+                    Ok(file) => Ok(DataType::String(file)),
+                    Err(e) => Err(EvalError {
+                        msg: format!("Couldn't load file: {}", e.to_string()),
+                    }),
+                },
+
+                _ => Err(EvalError {
+                    msg: "Incorrect arguments for slurp!".to_string(),
+                }),
+            }
+        } else {
+            Err(EvalError {
+                msg: "Incorrect number of arguments for slurp".to_string(),
             })
         }
     },

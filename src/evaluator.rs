@@ -88,6 +88,18 @@ pub fn eval<'a>(
                     Some(DataType::Symbol(val)) if *val == "fn*".to_string() => {
                         return eval_closure(&children[1..], repl_env.clone());
                     }
+
+                    Some(DataType::Symbol(val)) if *val == "eval".to_string() => {
+                        let Some(new_ast) = children.get(1) else {
+                            return Err(EvalError {
+                                msg: "No value given to eval".to_string(),
+                            });
+                        };
+                        let evaled_new_ast = eval(new_ast, repl_env.clone())?;
+                        ast = Box::new(evaled_new_ast.clone());
+                        continue;
+                    }
+
                     _ => {}
                 };
 
@@ -286,7 +298,6 @@ fn eval_closure(args: &[DataType], env: Rc<RefCell<Environment>>) -> Result<Data
     }
 }
 
-
 impl Closure {
     pub fn func(&self, args: &[DataType]) -> Result<DataType, EvalError> {
         let (ast, environment) = self.prepare_tail_call(args)?;
@@ -294,7 +305,10 @@ impl Closure {
         eval(ast, environment)
     }
 
-    pub fn prepare_tail_call(&self, args: &[DataType]) -> Result<(&DataType, Rc<RefCell<Environment>>), EvalError> {
+    pub fn prepare_tail_call(
+        &self,
+        args: &[DataType],
+    ) -> Result<(&DataType, Rc<RefCell<Environment>>), EvalError> {
         let mut i = 0;
 
         loop {
