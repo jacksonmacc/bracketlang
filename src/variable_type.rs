@@ -11,6 +11,12 @@ pub struct Closure {
 
 impl Closure {
     pub fn func(&self, args: &[DataType]) -> Result<DataType, EvalError> {
+        let (ast, environment) = self.prepare_tail_call(args)?;
+
+        eval(ast, environment)
+    }
+
+    pub fn prepare_tail_call(&self, args: &[DataType]) -> Result<(&DataType, Rc<RefCell<Environment>>), EvalError> {
         let mut i = 0;
 
         loop {
@@ -57,7 +63,7 @@ impl Closure {
             i += 1;
         }
 
-        eval(&self.ast, self.env.clone())
+        Ok((&self.ast, self.env.clone()))
     }
 }
 
