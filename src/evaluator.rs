@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::variable_type::DataType;
+use crate::variable_type::{Closure, DataType};
 
 #[derive(Debug)]
 pub struct EvalError {
@@ -97,11 +97,12 @@ pub fn eval<'a>(
                     .collect::<Result<_, EvalError>>()?;
 
                 match evaluated.first() {
-                    Some(DataType::Function(function)) => return Ok(function(&evaluated[1..])?),
-                    Some(DataType::BuiltinFunction(function)) => {
+                    Some(DataType::Closure(function)) => return Ok(function.func(&evaluated[1..])?),
+
+                    Some(DataType::NativeFunction(function)) => {
                         return Ok(function.1(&evaluated[1..])?);
                     }
-                    // TODO: Check that this isn't supposed to error
+
                     None | Some(_) => return Ok(DataType::List(evaluated)),
                 };
             }
@@ -257,10 +258,10 @@ fn eval_closure(args: &[DataType], env: Rc<RefCell<Environment>>) -> Result<Data
             })
             .collect::<Result<Vec<String>, EvalError>>()?;
 
-        let closure_env = Environment {
+        let closure_env = Rc::new(RefCell::new(Environment {
             outer: Some(env.clone()),
             data: HashMap::new(),
-        };
+        }));
 
         let Some(closure_body_ref) = args.get(1) else {
             return Err(EvalError {
@@ -268,60 +269,11 @@ fn eval_closure(args: &[DataType], env: Rc<RefCell<Environment>>) -> Result<Data
             });
         };
 
-        let closure_body = closure_body_ref.clone();
-
-        return Ok(DataType::Function(Rc::new(
-            move |params: &[DataType]| -> Result<DataType, EvalError> {
-                let mut closure_env = closure_env.clone();
-                let mut i = 0;
-
-                loop {
-                    let (name, param) = match (param_names.get(i), params.get(i)) {
-                        (Some(ampersand), Some(_)) if ampersand == "&" => {
-                            let Some(name) = param_names.get(i + 1) else {
-                                return Err(EvalError {
-                                    msg: "& found in closure without variadic argument name"
-                                        .to_string(),
-                                });
-                            };
-
-                            let mut children = vec![];
-                            let mut i2 = 0;
-
-                            loop {
-                                let Some(param) = params.get(i2) else {
-                                    break;
-                                };
-                                children.push(param.clone());
-                                i2 += 1;
-                            }
-
-                            closure_env.set(name.to_owned(), DataType::List(children));
-
-                            break;
-                        }
-
-                        (Some(name), Some(param)) => (name, param),
-
-                        (None, None) => {
-                            break;
-                        }
-
-                        _ => {
-                            return Err(EvalError {
-                                msg: "Parameters given do not match expected parameters"
-                                    .to_string(),
-                            });
-                        }
-                    };
-
-                    closure_env.set(name.to_owned(), param.clone());
-                    i += 1;
-                }
-
-                eval(&closure_body, Rc::new(RefCell::new(closure_env.clone())))
-            },
-        )));
+        return Ok(DataType::Closure(Closure {
+            ast: Box::new(closure_body_ref.clone()),
+            params: param_names,
+            env: closure_env.clone(),
+        }));
     } else {
         return Err(EvalError {
             msg: "Expected parameter list for function".to_string(),

@@ -279,16 +279,34 @@ fn test_simple_do() {
     }
 }
 
-
 #[test]
 #[should_panic]
 fn test_env_leak() {
     let env = create_repl_env();
     let result = eval(&read("(let* (c 18) c)".to_string()).unwrap(), env.clone()).unwrap();
-        if let DataType::Integer(int) = result {
+    if let DataType::Integer(int) = result {
         assert_eq!(int, 18);
     } else {
         assert!(false);
     }
     let _ = eval(&read("c".to_string()).unwrap(), env.clone()).unwrap();
+}
+
+#[test]
+fn test_simple_function() {
+    let env = create_repl_env();
+    let result = eval(
+        &read("(def! x (fn* (a) a))".to_string()).unwrap(),
+        env.clone(),
+    )
+    .unwrap();
+    let DataType::Closure(_) = result else {
+        panic!()
+    };
+    let result = eval(&read("(x 3)".to_string()).unwrap(), env.clone()).unwrap();
+    if let DataType::Integer(int) = result {
+        assert_eq!(int, 3);
+    } else {
+        assert!(false);
+    }
 }

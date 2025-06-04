@@ -1,6 +1,65 @@
-use std::{collections::HashMap, ptr::addr_of, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, ptr::addr_of, rc::Rc};
 
-use crate::evaluator::EvalError;
+use crate::evaluator::{Environment, EvalError, eval};
+
+#[derive(Clone)]
+pub struct Closure {
+    pub ast: Box<DataType>,
+    pub params: Vec<String>,
+    pub env: Rc<RefCell<Environment>>,
+}
+
+impl Closure {
+    pub fn func(&self, args: &[DataType]) -> Result<DataType, EvalError> {
+        let mut i = 0;
+
+        loop {
+            let (name, param) = match (self.params.get(i), args.get(i)) {
+                (Some(ampersand), Some(_)) if ampersand == "&" => {
+                    let Some(name) = self.params.get(i + 1) else {
+                        return Err(EvalError {
+                            msg: "& found in closure without variadic argument name".to_string(),
+                        });
+                    };
+
+                    let mut children = vec![];
+                    let mut i2 = 0;
+
+                    loop {
+                        let Some(param) = args.get(i2) else {
+                            break;
+                        };
+                        children.push(param.clone());
+                        i2 += 1;
+                    }
+
+                    self.env
+                        .borrow_mut()
+                        .set(name.to_owned(), DataType::List(children));
+
+                    break;
+                }
+
+                (Some(name), Some(param)) => (name, param),
+
+                (None, None) => {
+                    break;
+                }
+
+                _ => {
+                    return Err(EvalError {
+                        msg: "Parameters given do not match expected parameters".to_string(),
+                    });
+                }
+            };
+
+            self.env.borrow_mut().set(name.to_owned(), param.clone());
+            i += 1;
+        }
+
+        eval(&self.ast, self.env.clone())
+    }
+}
 
 #[derive(Clone)]
 pub enum DataType {
@@ -14,8 +73,8 @@ pub enum DataType {
     Comment(),
     Vector(Vec<DataType>),
     Dictionary(HashMap<String, DataType>),
-    Function(Rc<dyn Fn(&[DataType]) -> Result<DataType, EvalError>>),
-    BuiltinFunction((i8, &'static fn(&[DataType]) -> Result<DataType, EvalError>)),
+    Closure(Closure),
+    NativeFunction((i8, &'static fn(&[DataType]) -> Result<DataType, EvalError>)),
 }
 
 impl PartialEq for DataType {
@@ -29,10 +88,8 @@ impl PartialEq for DataType {
             (Self::String(l0), Self::String(r0)) => l0 == r0,
             (Self::Vector(l0), Self::Vector(r0)) => l0 == r0,
             (Self::Dictionary(l0), Self::Dictionary(r0)) => l0 == r0,
-            (Self::Function(l0), Self::Function(r0)) => addr_of!(l0) == addr_of!(r0),
-            (Self::BuiltinFunction(l0), Self::BuiltinFunction(r0)) => {
-                r0.0 == l0.0
-            }
+            (Self::Closure(l0), Self::Closure(r0)) => addr_of!(l0) == addr_of!(r0),
+            (Self::NativeFunction(l0), Self::NativeFunction(r0)) => r0.0 == l0.0,
             _ => false,
         }
     }
@@ -74,8 +131,8 @@ impl std::fmt::Debug for DataType {
             DataType::Float(float) => write!(f, "{}", float),
             DataType::Integer(num) => write!(f, "{}", num),
             DataType::String(str) => write!(f, "\"{}\"", str),
-            DataType::Function(func) => write!(f, "{:p}", func),
-            DataType::BuiltinFunction(func) => write!(f, "{:p}", func),
+            DataType::Closure(func) => write!(f, "Closure: {:p}", func),
+            DataType::NativeFunction(func) => write!(f, "Native Function: {:p}", func),
         }
     }
 }

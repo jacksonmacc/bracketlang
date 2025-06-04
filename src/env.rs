@@ -18,7 +18,7 @@ pub fn create_repl_env() -> Rc<RefCell<Environment>> {
         ($($l:ident),*) => {
             let mut i = 0;
             $ (
-                repl_env.set($l.id.to_string(), DataType::BuiltinFunction((i, &$l.func)));
+                repl_env.set($l.id.to_string(), DataType::NativeFunction((i, &$l.func)));
                 i += 1;
             )*
         };
