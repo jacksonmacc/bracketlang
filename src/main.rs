@@ -28,18 +28,23 @@ fn print(input: DataType) -> String {
     format!("{:?}", input)
 }
 
-fn rep(input: String, repl_env: Rc<RefCell<Environment>>) -> String {
+fn rep(input: String, repl_env: Rc<RefCell<Environment>>) -> Option<String> {
     let ast = match read(input) {
         Ok(r) => r,
-        Err(e) => return e.msg,
+        Err(e) => return Some(e.msg),
     };
 
     let eval_result = match eval(&ast, repl_env.clone(), repl_env.clone()) {
         Ok(r) => r,
-        Err(e) => return e.msg,
+        Err(e) => return Some(e.msg),
     };
-    let print_result = print(eval_result);
-    print_result
+    
+    if let DataType::Nil() = eval_result {
+        None
+    } else {
+        let print_result = print(eval_result);
+        Some(print_result)
+    }
 }
 
 fn main() {
@@ -72,6 +77,8 @@ fn main() {
             break;
         }
 
-        println!("{}", rep(user_input, repl_env.clone()))
+        if let Some(result) = rep(user_input, repl_env.clone()) {
+            println!("{}", result);
+        }
     }
 }
