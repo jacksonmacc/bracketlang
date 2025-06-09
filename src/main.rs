@@ -34,7 +34,7 @@ fn rep(input: String, repl_env: Rc<RefCell<Environment>>) -> String {
         Err(e) => return e.msg,
     };
 
-    let eval_result = match eval(&ast, repl_env) {
+    let eval_result = match eval(&ast, repl_env.clone(), repl_env.clone()) {
         Ok(r) => r,
         Err(e) => return e.msg,
     };
@@ -49,10 +49,11 @@ fn main() {
         repl_env.clone(),
     );
     rep(
-        "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))".to_string(),
+        "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))"
+            .to_string(),
         repl_env.clone(),
     );
-    
+
     loop {
         print!("user> ");
         stdout()

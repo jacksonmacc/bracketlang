@@ -42,7 +42,8 @@ pub fn create_repl_env() -> Rc<RefCell<Environment>> {
         LESS_THAN_OR_EQUALS,
         GREATER_THAN_OR_EQUALS,
         READ_STR,
-        SLURP
+        SLURP,
+        STR
     );
 
     Rc::new(RefCell::new(repl_env))
@@ -308,7 +309,7 @@ const LESS_THAN_OR_EQUALS: CoreFunction = CoreFunction {
 };
 
 const READ_STR: CoreFunction = CoreFunction {
-    id: "read-str",
+    id: "read-string",
     func: |values: &[DataType]| {
         if values.len() == 1 {
             match values.get(0) {
@@ -350,5 +351,23 @@ const SLURP: CoreFunction = CoreFunction {
                 msg: "Incorrect number of arguments for slurp".to_string(),
             })
         }
+    },
+};
+
+const STR: CoreFunction = CoreFunction {
+    id: "str",
+    func: |values: &[DataType]| {
+        let mut end_str = "".to_string();
+        for value in values {
+            let DataType::String(str) = value else {
+                return Err(EvalError {
+                    msg: "All arguments to str should be strings".to_string(),
+                });
+            };
+
+            end_str += str;
+        }
+
+        Ok(DataType::String(end_str))
     },
 };
