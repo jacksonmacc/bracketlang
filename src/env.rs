@@ -50,7 +50,10 @@ pub fn create_repl_env() -> Rc<RefCell<Environment>> {
         RESET_ATOM,
         SWAP_ATOM,
         CONS,
-        CONCAT
+        CONCAT,
+        NTH,
+        FIRST,
+        REST
     );
 
     Rc::new(RefCell::new(repl_env))
@@ -510,5 +513,59 @@ const CONCAT: CoreFunction = CoreFunction {
         }
 
         Ok(DataType::List(result))
+    },
+};
+
+const NTH: CoreFunction = CoreFunction {
+    id: "nth",
+    func: |values: &[DataType]| {
+        let (Some(List(list) | Vector(list)), Some(Integer(idx))) = (values.get(0), values.get(1))
+        else {
+            return Err(EvalError {
+                msg: "Wrong arguments for nth".to_string(),
+            });
+        };
+
+        match list.get(*idx as usize) {
+            Some(v) => Ok(v.clone()),
+            None => {
+                return Err(EvalError {
+                    msg: "Index out of bounds".to_string(),
+                });
+            }
+        }
+    },
+};
+
+const FIRST: CoreFunction = CoreFunction {
+    id: "first",
+    func: |values: &[DataType]| {
+        let Some(List(list) | Vector(list)) = values.get(0) else {
+            return Err(EvalError {
+                msg: "Wrong arguments for nth".to_string(),
+            });
+        };
+
+        match list.first() {
+            Some(v) => Ok(v.clone()),
+            None => {
+                return Err(EvalError {
+                    msg: "Index out of bounds".to_string(),
+                });
+            }
+        }
+    },
+};
+
+const REST: CoreFunction = CoreFunction {
+    id: "rest",
+    func: |values: &[DataType]| {
+        let Some(List(list) | Vector(list)) = values.get(0) else {
+            return Err(EvalError {
+                msg: "Wrong arguments for nth".to_string(),
+            });
+        };
+
+        return Ok(DataType::List(list[1..].iter().cloned().collect()));
     },
 };

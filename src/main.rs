@@ -61,29 +61,28 @@ fn re(input: String, repl_env: Rc<RefCell<Environment>>) -> Result<DataType, Str
     Ok(result)
 }
 
+fn run_preamble(preamble: &str, repl_env: Rc<RefCell<Environment>>) {
+    match re(preamble.to_string(), repl_env.clone()) {
+        Err(e) => {
+            println!("Error in core function definition! {}", e);
+            return;
+        }
+        _ => (),
+    };
+}
+
 fn main() {
     let repl_env = create_repl_env();
-    match re(
-        "(def! not (fn* (a) (if a false true)))".to_string(),
+
+    run_preamble("(def! not (fn* (a) (if a false true)))", repl_env.clone());
+    run_preamble(
+        "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))",
         repl_env.clone(),
-    ) {
-        Err(e) => {
-            println!("Error in core function definition! {}", e);
-            return;
-        }
-        _ => (),
-    };
-    match re(
-        "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))"
-            .to_string(),
+    );
+    run_preamble(
+        "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))",
         repl_env.clone(),
-    ) {
-        Err(e) => {
-            println!("Error in core function definition! {}", e);
-            return;
-        }
-        _ => (),
-    };
+    );
 
     let args: Vec<String> = std::env::args().collect();
     if let Some(filename) = args.get(1) {
