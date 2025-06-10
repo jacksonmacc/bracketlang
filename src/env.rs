@@ -48,7 +48,8 @@ pub fn create_repl_env() -> Rc<RefCell<Environment>> {
         CHECK_ATOM,
         DEREF,
         RESET_ATOM,
-        SWAP_ATOM
+        SWAP_ATOM,
+        CONS
     );
 
     Rc::new(RefCell::new(repl_env))
@@ -465,5 +466,28 @@ const SWAP_ATOM: CoreFunction = CoreFunction {
         atom_value.replace(func.func(&args[0..])?);
 
         Ok(atom_value.borrow().clone())
+    },
+};
+
+const CONS: CoreFunction = CoreFunction {
+    id: "cons",
+    func: |values: &[DataType]| {
+        let Some(value) = values.first() else {
+            return Err(EvalError {
+                msg: "Incorrect arguments to deref".to_string(),
+            });
+        };
+
+        let Some(List(list)) = values.get(1) else {
+            return Err(EvalError {
+                msg: "Incorrect arguments to deref".to_string(),
+            });
+        };
+
+        let mut new_list = vec![];
+        new_list.push(value.clone());
+        new_list.extend(list.iter().cloned());
+
+        Ok(DataType::List(new_list))
     },
 };

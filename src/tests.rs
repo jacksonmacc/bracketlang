@@ -376,3 +376,101 @@ fn test_reset_atom() {
         panic!();
     }
 }
+
+#[test]
+fn test_cons() {
+    let env = create_repl_env();
+    let result = run_line("(cons 1 (list 2 3))", env.clone());
+    if let DataType::List(list) = result {
+        assert_eq!(
+            list,
+            vec![
+                DataType::Integer(1),
+                DataType::Integer(2),
+                DataType::Integer(3)
+            ]
+        );
+    } else {
+        panic!();
+    }
+}
+
+#[test]
+fn test_quote() {
+    let env = create_repl_env();
+    let result = run_line("(quote (b c))", env.clone());
+    if let DataType::List(list) = result {
+        assert_eq!(
+            list,
+            vec![
+                DataType::Symbol("b".to_string()),
+                DataType::Symbol("c".to_string())
+            ]
+        );
+    } else {
+        panic!();
+    }
+}
+
+#[test]
+fn test_quasiquote() {
+    let env = create_repl_env();
+    let result = run_line("(quasiquote (a lst d))", env.clone());
+
+    if let DataType::List(list) = result {
+        assert_eq!(
+            list,
+            vec![
+                DataType::Symbol("a".to_string()),
+                DataType::Symbol("lst".to_string()),
+                DataType::Symbol("d".to_string())
+            ]
+        );
+    } else {
+        panic!();
+    }
+}
+
+#[test]
+fn test_quasiquote_unquote() {
+    let env = create_repl_env();
+    let _ = run_line("(def! lst (quote (b c)))", env.clone());
+    let result = run_line("(quasiquote (a (unquote lst) d))", env.clone());
+
+    if let DataType::List(list) = result {
+        assert_eq!(
+            list,
+            vec![
+                DataType::Symbol("a".to_string()),
+                DataType::List(vec![
+                    DataType::Symbol("b".to_string()),
+                    DataType::Symbol("c".to_string())
+                ]),
+                DataType::Symbol("d".to_string())
+            ]
+        );
+    } else {
+        panic!();
+    }
+}
+
+#[test]
+fn test_splice_unquote() {
+    let env = create_repl_env();
+    let _ = run_line("(def! lst (quote (b c)))", env.clone());
+    let result = run_line("(quasiquote (a (splice-unquote lst) d))", env.clone());
+
+    if let DataType::List(list) = result {
+        assert_eq!(
+            list,
+            vec![
+                DataType::Symbol("a".to_string()),
+                DataType::Symbol("b".to_string()),
+                DataType::Symbol("c".to_string()),
+                DataType::Symbol("d".to_string())
+            ]
+        );
+    } else {
+        panic!();
+    }
+}
