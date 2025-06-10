@@ -1,65 +1,9 @@
+use bracketlang_backend::{self, create_default_repl_env, re, rep, variable_type::{DataType, Environment}};
 use std::{
     cell::RefCell,
     io::{Write, stdin, stdout},
     rc::Rc,
 };
-
-use evaluator::eval;
-use reader::{ParseError, Reader, get_regex, tokenize};
-use variable_type::DataType;
-
-use crate::{env::create_repl_env, evaluator::Environment};
-
-mod env;
-mod evaluator;
-mod reader;
-mod variable_type;
-
-#[cfg(test)]
-mod tests;
-
-fn read(input: String) -> Result<DataType, ParseError> {
-    let tokens = tokenize(input, get_regex());
-    let mut reader = Reader::new(tokens);
-    reader.read()
-}
-
-fn print(input: DataType) -> String {
-    format!("{:?}", input)
-}
-
-fn rep(input: String, repl_env: Rc<RefCell<Environment>>) -> Option<String> {
-    let ast = match read(input) {
-        Ok(r) => r,
-        Err(e) => return Some(format!("PARSE ERROR: {}", e.msg)),
-    };
-
-    let eval_result = match eval(&ast, repl_env.clone(), repl_env.clone()) {
-        Ok(r) => r,
-        Err(e) => return Some(format!("RUNTIME ERROR: {}", e.msg)),
-    };
-
-    if let DataType::Nil() = eval_result {
-        None
-    } else {
-        let print_result = print(eval_result);
-        Some(print_result)
-    }
-}
-
-fn re(input: String, repl_env: Rc<RefCell<Environment>>) -> Result<DataType, String> {
-    let ast = match read(input) {
-        Ok(r) => r,
-        Err(e) => return Err(e.msg),
-    };
-
-    let result = match eval(&ast, repl_env.clone(), repl_env.clone()) {
-        Ok(r) => r,
-        Err(e) => return Err(e.msg),
-    };
-
-    Ok(result)
-}
 
 fn run_preamble(preamble: &str, repl_env: Rc<RefCell<Environment>>) {
     match re(preamble.to_string(), repl_env.clone()) {
@@ -72,7 +16,7 @@ fn run_preamble(preamble: &str, repl_env: Rc<RefCell<Environment>>) {
 }
 
 fn main() {
-    let repl_env = create_repl_env();
+    let repl_env = create_default_repl_env();
 
     run_preamble("(def! not (fn* (a) (if a false true)))", repl_env.clone());
     run_preamble(

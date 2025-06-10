@@ -4,7 +4,7 @@ use std::fs;
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::evaluator::{Environment, RuntimeError};
+use crate::evaluator::RuntimeError;
 use crate::read;
 use crate::variable_type::DataType;
 use crate::variable_type::DataType::*;
@@ -12,78 +12,6 @@ use crate::variable_type::DataType::*;
 pub struct CoreFunction {
     pub id: &'static str,
     pub func: fn(&[DataType]) -> Result<DataType, RuntimeError>,
-}
-
-#[allow(unused_assignments)]
-pub fn create_repl_env() -> Rc<RefCell<Environment>> {
-    let mut repl_env = Environment::new(None);
-
-    macro_rules! set_function {
-        ($($l:ident),*) => {
-            let mut i = 0;
-            $ (
-                repl_env.set($l.id.to_string(), DataType::NativeFunction((i, &$l.func)));
-                i += 1;
-            )*
-        };
-    }
-
-    set_function!(
-        ADDITION,
-        SUBTRACTION,
-        DIVISION,
-        MULTIPLICATION,
-        PRINT,
-        LIST,
-        CHECK_LIST,
-        LIST_EMPTY,
-        LIST_LEN,
-        EQUALS,
-        GREATER_THAN,
-        LESS_THAN,
-        LESS_THAN_OR_EQUALS,
-        GREATER_THAN_OR_EQUALS,
-        READ_STR,
-        SLURP,
-        STR,
-        ATOM,
-        CHECK_ATOM,
-        DEREF,
-        RESET_ATOM,
-        SWAP_ATOM,
-        CONS,
-        CONCAT,
-        NTH,
-        FIRST,
-        REST,
-        THROW,
-        APPLY,
-        MAP,
-        CHECK_NIL,
-        CHECK_TRUE,
-        CHECK_FALSE,
-        CHECK_SYMBOL,
-        CHECK_VECTOR,
-        CHECK_DICTIONARY,
-        CHECK_SEQUENTIAL,
-        SYMBOL,
-        DICTIONARY,
-        VECTOR,
-        ASSOC,
-        DISSOC,
-        GET,
-        CONTAINS,
-        KEYS,
-        VALUES,
-        CHECK_STR,
-        CHECK_INTEGER,
-        CHECK_FLOAT,
-        CHECK_FN,
-        CHECK_MACRO,
-        TIME_MS
-    );
-
-    Rc::new(RefCell::new(repl_env))
 }
 
 macro_rules! type_check {
@@ -97,7 +25,7 @@ macro_rules! type_check {
         }
     };
 }
-const ADDITION: CoreFunction = CoreFunction {
+pub const ADDITION: CoreFunction = CoreFunction {
     id: "+",
     func: |values: &[DataType]| {
         if values.len() == 2 {
@@ -120,7 +48,7 @@ const ADDITION: CoreFunction = CoreFunction {
     },
 };
 
-const MULTIPLICATION: CoreFunction = CoreFunction {
+pub const MULTIPLICATION: CoreFunction = CoreFunction {
     id: "*",
     func: |values: &[DataType]| {
         if values.len() == 2 {
@@ -140,7 +68,8 @@ const MULTIPLICATION: CoreFunction = CoreFunction {
         }
     },
 };
-const SUBTRACTION: CoreFunction = CoreFunction {
+
+pub const SUBTRACTION: CoreFunction = CoreFunction {
     id: "-",
     func: |values: &[DataType]| {
         if values.len() == 2 {
@@ -161,7 +90,7 @@ const SUBTRACTION: CoreFunction = CoreFunction {
     },
 };
 
-const DIVISION: CoreFunction = CoreFunction {
+pub const DIVISION: CoreFunction = CoreFunction {
     id: "/",
     func: |values: &[DataType]| {
         if values.len() == 2 {
@@ -182,7 +111,7 @@ const DIVISION: CoreFunction = CoreFunction {
     },
 };
 
-const PRINT: CoreFunction = CoreFunction {
+pub const PRINT: CoreFunction = CoreFunction {
     id: "prn",
     func: |values: &[DataType]| {
         println!(
@@ -198,7 +127,7 @@ const PRINT: CoreFunction = CoreFunction {
     },
 };
 
-const LIST: CoreFunction = CoreFunction {
+pub const LIST: CoreFunction = CoreFunction {
     id: "list",
     func: |values: &[DataType]| {
         let mut children = vec![];
@@ -209,7 +138,7 @@ const LIST: CoreFunction = CoreFunction {
     },
 };
 
-const VECTOR: CoreFunction = CoreFunction {
+pub const VECTOR: CoreFunction = CoreFunction {
     id: "vector",
     func: |values: &[DataType]| {
         let mut children = vec![];
@@ -220,12 +149,12 @@ const VECTOR: CoreFunction = CoreFunction {
     },
 };
 
-const CHECK_LIST: CoreFunction = CoreFunction {
+pub const CHECK_LIST: CoreFunction = CoreFunction {
     id: "list?",
     func: type_check!(DataType::List(_)),
 };
 
-const LIST_EMPTY: CoreFunction = CoreFunction {
+pub const LIST_EMPTY: CoreFunction = CoreFunction {
     id: "empty?",
     func: |values: &[DataType]| {
         if let Some(DataType::List(children)) = values.first() {
@@ -242,7 +171,7 @@ const LIST_EMPTY: CoreFunction = CoreFunction {
     },
 };
 
-const LIST_LEN: CoreFunction = CoreFunction {
+pub const LIST_LEN: CoreFunction = CoreFunction {
     id: "count",
     func: |values: &[DataType]| {
         if let Some(DataType::List(children)) = values.first() {
@@ -263,7 +192,7 @@ const LIST_LEN: CoreFunction = CoreFunction {
     },
 };
 
-const EQUALS: CoreFunction = CoreFunction {
+pub const EQUALS: CoreFunction = CoreFunction {
     id: "=",
     func: |values: &[DataType]| {
         let (Some(var1), Some(var2)) = (values.get(0), values.get(1)) else {
@@ -277,7 +206,7 @@ const EQUALS: CoreFunction = CoreFunction {
 };
 
 // TODO: Write a macro for these
-const GREATER_THAN: CoreFunction = CoreFunction {
+pub const GREATER_THAN: CoreFunction = CoreFunction {
     id: ">",
     func: |values: &[DataType]| {
         if values.len() == 2 {
@@ -298,7 +227,7 @@ const GREATER_THAN: CoreFunction = CoreFunction {
     },
 };
 
-const LESS_THAN: CoreFunction = CoreFunction {
+pub const LESS_THAN: CoreFunction = CoreFunction {
     id: "<",
     func: |values: &[DataType]| {
         if values.len() == 2 {
@@ -319,7 +248,7 @@ const LESS_THAN: CoreFunction = CoreFunction {
     },
 };
 
-const GREATER_THAN_OR_EQUALS: CoreFunction = CoreFunction {
+pub const GREATER_THAN_OR_EQUALS: CoreFunction = CoreFunction {
     id: ">=",
     func: |values: &[DataType]| {
         if values.len() == 2 {
@@ -340,7 +269,7 @@ const GREATER_THAN_OR_EQUALS: CoreFunction = CoreFunction {
     },
 };
 
-const LESS_THAN_OR_EQUALS: CoreFunction = CoreFunction {
+pub const LESS_THAN_OR_EQUALS: CoreFunction = CoreFunction {
     id: "<=",
     func: |values: &[DataType]| {
         if values.len() == 2 {
@@ -361,7 +290,7 @@ const LESS_THAN_OR_EQUALS: CoreFunction = CoreFunction {
     },
 };
 
-const READ_STR: CoreFunction = CoreFunction {
+pub const READ_STR: CoreFunction = CoreFunction {
     id: "read-string",
     func: |values: &[DataType]| {
         if values.len() == 1 {
@@ -383,7 +312,7 @@ const READ_STR: CoreFunction = CoreFunction {
     },
 };
 
-const SLURP: CoreFunction = CoreFunction {
+pub const SLURP: CoreFunction = CoreFunction {
     id: "slurp",
     func: |values: &[DataType]| {
         if values.len() == 1 {
@@ -407,7 +336,7 @@ const SLURP: CoreFunction = CoreFunction {
     },
 };
 
-const STR: CoreFunction = CoreFunction {
+pub const STR: CoreFunction = CoreFunction {
     id: "str",
     func: |values: &[DataType]| {
         let mut end_str = "".to_string();
@@ -425,7 +354,7 @@ const STR: CoreFunction = CoreFunction {
     },
 };
 
-const ATOM: CoreFunction = CoreFunction {
+pub const ATOM: CoreFunction = CoreFunction {
     id: "atom",
     func: |values: &[DataType]| {
         let Some(val) = values.first() else {
@@ -438,7 +367,7 @@ const ATOM: CoreFunction = CoreFunction {
     },
 };
 
-const CHECK_ATOM: CoreFunction = CoreFunction {
+pub const CHECK_ATOM: CoreFunction = CoreFunction {
     id: "atom?",
     func: type_check!(DataType::Atom(_)),
 };
@@ -456,7 +385,7 @@ pub const DEREF: CoreFunction = CoreFunction {
     },
 };
 
-const RESET_ATOM: CoreFunction = CoreFunction {
+pub const RESET_ATOM: CoreFunction = CoreFunction {
     id: "reset!",
     func: |values: &[DataType]| {
         let Some(Atom(atom)) = values.first() else {
@@ -477,7 +406,7 @@ const RESET_ATOM: CoreFunction = CoreFunction {
     },
 };
 
-const SWAP_ATOM: CoreFunction = CoreFunction {
+pub const SWAP_ATOM: CoreFunction = CoreFunction {
     id: "swap!",
     func: |values: &[DataType]| {
         let Some(Atom(atom_value)) = values.first() else {
@@ -504,7 +433,7 @@ const SWAP_ATOM: CoreFunction = CoreFunction {
     },
 };
 
-const CONS: CoreFunction = CoreFunction {
+pub const CONS: CoreFunction = CoreFunction {
     id: "cons",
     func: |values: &[DataType]| {
         let Some(value) = values.first() else {
@@ -527,7 +456,7 @@ const CONS: CoreFunction = CoreFunction {
     },
 };
 
-const CONCAT: CoreFunction = CoreFunction {
+pub const CONCAT: CoreFunction = CoreFunction {
     id: "concat",
     func: |values: &[DataType]| {
         let mut result = vec![];
@@ -547,7 +476,7 @@ const CONCAT: CoreFunction = CoreFunction {
     },
 };
 
-const NTH: CoreFunction = CoreFunction {
+pub const NTH: CoreFunction = CoreFunction {
     id: "nth",
     func: |values: &[DataType]| {
         let (Some(List(list) | Vector(list)), Some(Integer(idx))) = (values.get(0), values.get(1))
@@ -568,7 +497,7 @@ const NTH: CoreFunction = CoreFunction {
     },
 };
 
-const FIRST: CoreFunction = CoreFunction {
+pub const FIRST: CoreFunction = CoreFunction {
     id: "first",
     func: |values: &[DataType]| {
         let Some(List(list) | Vector(list)) = values.get(0) else {
@@ -588,7 +517,7 @@ const FIRST: CoreFunction = CoreFunction {
     },
 };
 
-const REST: CoreFunction = CoreFunction {
+pub const REST: CoreFunction = CoreFunction {
     id: "rest",
     func: |values: &[DataType]| {
         let Some(List(list) | Vector(list)) = values.get(0) else {
@@ -601,7 +530,7 @@ const REST: CoreFunction = CoreFunction {
     },
 };
 
-const THROW: CoreFunction = CoreFunction {
+pub const THROW: CoreFunction = CoreFunction {
     id: "throw",
     func: |values: &[DataType]| {
         let Some(String(string)) = values.get(0) else {
@@ -616,7 +545,7 @@ const THROW: CoreFunction = CoreFunction {
     },
 };
 
-const APPLY: CoreFunction = CoreFunction {
+pub const APPLY: CoreFunction = CoreFunction {
     id: "apply",
     func: |values: &[DataType]| {
         if let Some(Closure(closure)) = values.get(0) {
@@ -653,7 +582,7 @@ const APPLY: CoreFunction = CoreFunction {
     },
 };
 
-const MAP: CoreFunction = CoreFunction {
+pub const MAP: CoreFunction = CoreFunction {
     id: "map",
     func: |values: &[DataType]| {
         if let (Some(Closure(closure)), Some(List(list) | Vector(list))) =
@@ -680,62 +609,62 @@ const MAP: CoreFunction = CoreFunction {
     },
 };
 
-const CHECK_NIL: CoreFunction = CoreFunction {
+pub const CHECK_NIL: CoreFunction = CoreFunction {
     id: "nil?",
     func: type_check!(DataType::Nil()),
 };
 
-const CHECK_TRUE: CoreFunction = CoreFunction {
+pub const CHECK_TRUE: CoreFunction = CoreFunction {
     id: "true?",
     func: type_check!(DataType::Bool(true)),
 };
 
-const CHECK_FALSE: CoreFunction = CoreFunction {
+pub const CHECK_FALSE: CoreFunction = CoreFunction {
     id: "false?",
     func: type_check!(DataType::Bool(false)),
 };
 
-const CHECK_SYMBOL: CoreFunction = CoreFunction {
+pub const CHECK_SYMBOL: CoreFunction = CoreFunction {
     id: "symbol?",
     func: type_check!(DataType::Symbol(_)),
 };
 
-const CHECK_VECTOR: CoreFunction = CoreFunction {
+pub const CHECK_VECTOR: CoreFunction = CoreFunction {
     id: "vector?",
     func: type_check!(DataType::Vector(_)),
 };
 
-const CHECK_SEQUENTIAL: CoreFunction = CoreFunction {
+pub const CHECK_SEQUENTIAL: CoreFunction = CoreFunction {
     id: "sequential?",
     func: type_check!(DataType::Vector(_) | DataType::List(_)),
 };
 
-const CHECK_DICTIONARY: CoreFunction = CoreFunction {
+pub const CHECK_DICTIONARY: CoreFunction = CoreFunction {
     id: "dict?",
     func: type_check!(DataType::Dictionary(_)),
 };
 
-const CHECK_STR: CoreFunction = CoreFunction {
+pub const CHECK_STR: CoreFunction = CoreFunction {
     id: "string?",
     func: type_check!(DataType::String(_)),
 };
 
-const CHECK_INTEGER: CoreFunction = CoreFunction {
+pub const CHECK_INTEGER: CoreFunction = CoreFunction {
     id: "int?",
     func: type_check!(DataType::Integer(_)),
 };
 
-const CHECK_FLOAT: CoreFunction = CoreFunction {
+pub const CHECK_FLOAT: CoreFunction = CoreFunction {
     id: "float?",
     func: type_check!(DataType::Float(_)),
 };
 
-const CHECK_FN: CoreFunction = CoreFunction {
+pub const CHECK_FN: CoreFunction = CoreFunction {
     id: "func?",
     func: type_check!(DataType::Closure(_) | DataType::NativeFunction(_)),
 };
 
-const CHECK_MACRO: CoreFunction = CoreFunction {
+pub const CHECK_MACRO: CoreFunction = CoreFunction {
     id: "macro?",
     func: |values: &[DataType]| match values.first() {
         Some(DataType::Closure(closure)) if closure.is_macro => Ok(DataType::Bool(true)),
@@ -746,7 +675,7 @@ const CHECK_MACRO: CoreFunction = CoreFunction {
     },
 };
 
-const SYMBOL: CoreFunction = CoreFunction {
+pub const SYMBOL: CoreFunction = CoreFunction {
     id: "symbol",
     func: |values: &[DataType]| {
         let Some(String(val)) = values.first() else {
@@ -759,7 +688,7 @@ const SYMBOL: CoreFunction = CoreFunction {
     },
 };
 
-const DICTIONARY: CoreFunction = CoreFunction {
+pub const DICTIONARY: CoreFunction = CoreFunction {
     id: "dict",
     func: |values: &[DataType]| {
         let mut i = 0;
@@ -782,7 +711,7 @@ const DICTIONARY: CoreFunction = CoreFunction {
     },
 };
 
-const ASSOC: CoreFunction = CoreFunction {
+pub const ASSOC: CoreFunction = CoreFunction {
     id: "assoc",
     func: |values: &[DataType]| {
         let Some(Dictionary(dict)) = values.first() else {
@@ -810,7 +739,7 @@ const ASSOC: CoreFunction = CoreFunction {
     },
 };
 
-const DISSOC: CoreFunction = CoreFunction {
+pub const DISSOC: CoreFunction = CoreFunction {
     id: "dissoc",
     func: |values: &[DataType]| {
         let Some(Dictionary(dict)) = values.first() else {
@@ -834,7 +763,7 @@ const DISSOC: CoreFunction = CoreFunction {
     },
 };
 
-const GET: CoreFunction = CoreFunction {
+pub const GET: CoreFunction = CoreFunction {
     id: "get",
     func: |values: &[DataType]| {
         let (Some(Dictionary(dict)), Some(key)) = (values.get(0), values.get(1)) else {
@@ -851,7 +780,7 @@ const GET: CoreFunction = CoreFunction {
     },
 };
 
-const CONTAINS: CoreFunction = CoreFunction {
+pub const CONTAINS: CoreFunction = CoreFunction {
     id: "contains",
     func: |values: &[DataType]| {
         let (Some(Dictionary(dict)), Some(key)) = (values.get(0), values.get(1)) else {
@@ -863,7 +792,7 @@ const CONTAINS: CoreFunction = CoreFunction {
     },
 };
 
-const KEYS: CoreFunction = CoreFunction {
+pub const KEYS: CoreFunction = CoreFunction {
     id: "keys",
     func: |values: &[DataType]| {
         let Some(Dictionary(dict)) = values.get(0) else {
@@ -875,7 +804,7 @@ const KEYS: CoreFunction = CoreFunction {
     },
 };
 
-const VALUES: CoreFunction = CoreFunction {
+pub const VALUES: CoreFunction = CoreFunction {
     id: "values",
     func: |values: &[DataType]| {
         let Some(Dictionary(dict)) = values.get(0) else {
@@ -887,7 +816,7 @@ const VALUES: CoreFunction = CoreFunction {
     },
 };
 
-const TIME_MS: CoreFunction = CoreFunction {
+pub const TIME_MS: CoreFunction = CoreFunction {
     id: "time-ms",
     func: |_values: &[DataType]| {
         Ok(Integer(

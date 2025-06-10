@@ -1,42 +1,10 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::variable_type::{Closure, DataType};
+use crate::variable_type::{Closure, DataType, Environment};
 
 #[derive(Debug)]
 pub struct RuntimeError {
     pub msg: String,
-}
-
-#[derive(Clone)]
-pub struct Environment {
-    outer: Option<Rc<RefCell<Self>>>,
-    data: HashMap<String, DataType>,
-}
-
-impl Environment {
-    pub fn new(outer: Option<Rc<RefCell<Self>>>) -> Environment {
-        Self {
-            outer,
-            data: HashMap::new(),
-        }
-    }
-
-    pub fn set(&mut self, sym: String, value: DataType) {
-        self.data.insert(sym, value);
-    }
-
-    fn get(&self, sym: &String) -> Option<DataType> {
-        match self.data.get(sym) {
-            Some(v) => Some(v.clone()),
-            None => {
-                let Some(ref outer_env) = self.outer else {
-                    return None;
-                };
-
-                outer_env.borrow_mut().get(sym)
-            }
-        }
-    }
 }
 
 pub fn eval<'a>(
@@ -455,10 +423,7 @@ fn eval_closure(
             })
             .collect::<Result<Vec<String>, RuntimeError>>()?;
 
-        let closure_env = Rc::new(RefCell::new(Environment {
-            outer: Some(env.clone()),
-            data: HashMap::new(),
-        }));
+        let closure_env = Rc::new(RefCell::new(Environment::new(Some(env.clone()))));
 
         let Some(closure_body_ref) = args.get(1) else {
             return Err(RuntimeError {

@@ -1,0 +1,7 @@
+[package]
+name = "bracketlang_frontend"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bracketlang_backend = {path = "../bracketlang_backend"}

@@ -1,6 +1,38 @@
 use std::{cell::RefCell, collections::HashMap, ptr::addr_of, rc::Rc};
 
-use crate::evaluator::{Environment, RuntimeError};
+use crate::evaluator::RuntimeError;
+
+#[derive(Clone)]
+pub struct Environment {
+    outer: Option<Rc<RefCell<Self>>>,
+    data: HashMap<String, DataType>,
+}
+
+impl Environment {
+    pub fn new(outer: Option<Rc<RefCell<Self>>>) -> Environment {
+        Self {
+            outer,
+            data: HashMap::new(),
+        }
+    }
+
+    pub fn set(&mut self, sym: String, value: DataType) {
+        self.data.insert(sym, value);
+    }
+
+    pub fn get(&self, sym: &String) -> Option<DataType> {
+        match self.data.get(sym) {
+            Some(v) => Some(v.clone()),
+            None => {
+                let Some(ref outer_env) = self.outer else {
+                    return None;
+                };
+
+                outer_env.borrow_mut().get(sym)
+            }
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct Closure {
@@ -24,7 +56,12 @@ pub enum DataType {
     Vector(Vec<DataType>),
     Dictionary(HashMap<String, DataType>),
     Closure(Closure),
-    NativeFunction((i8, &'static fn(&[DataType]) -> Result<DataType, RuntimeError>)),
+    NativeFunction(
+        (
+            i8,
+            &'static fn(&[DataType]) -> Result<DataType, RuntimeError>,
+        ),
+    ),
     Atom(Rc<RefCell<DataType>>),
 }
 

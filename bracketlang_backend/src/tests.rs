@@ -109,7 +109,7 @@ fn test_parsing_dict() {
 
 #[test]
 fn test_eval_simple_addition() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(+ 3 2)", env);
     if let DataType::Integer(num_result) = result {
         assert_eq!(num_result, 5);
@@ -120,7 +120,7 @@ fn test_eval_simple_addition() {
 
 #[test]
 fn test_eval_simple_addition_with_strings() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(+ \"Hello, \" \"World!\")", env);
     if let DataType::String(num_result) = result {
         assert_eq!(num_result, "Hello, World!".to_string());
@@ -131,7 +131,7 @@ fn test_eval_simple_addition_with_strings() {
 
 #[test]
 fn test_eval_addition_with_negatives() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(+ 3 -4)", env);
 
     if let DataType::Integer(num_result) = result {
@@ -143,7 +143,7 @@ fn test_eval_addition_with_negatives() {
 
 #[test]
 fn test_eval_addition_with_floats() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(+ 3.0 -4.5)", env);
 
     if let DataType::Float(float) = result {
@@ -155,7 +155,7 @@ fn test_eval_addition_with_floats() {
 
 #[test]
 fn test_eval_simple_subtraction() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(- 3 2)", env);
 
     if let DataType::Integer(num_result) = result {
@@ -167,7 +167,7 @@ fn test_eval_simple_subtraction() {
 
 #[test]
 fn test_eval_subtraction_with_negatives() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(- 3 -4)", env);
 
     if let DataType::Integer(num_result) = result {
@@ -179,7 +179,7 @@ fn test_eval_subtraction_with_negatives() {
 
 #[test]
 fn test_eval_subtraction_with_floats() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(- 2.5 3.5)", env);
 
     if let DataType::Float(float) = result {
@@ -191,7 +191,7 @@ fn test_eval_subtraction_with_floats() {
 
 #[test]
 fn test_eval_simple_multiplication() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(* 3 2)", env);
 
     if let DataType::Integer(num_result) = result {
@@ -203,7 +203,7 @@ fn test_eval_simple_multiplication() {
 
 #[test]
 fn test_eval_multiplication_with_negatives() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(* 3 -4)", env);
 
     if let DataType::Integer(num_result) = result {
@@ -215,7 +215,7 @@ fn test_eval_multiplication_with_negatives() {
 
 #[test]
 fn test_eval_multiplication_with_floats() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(* 3.0 1.5)", env);
 
     if let DataType::Float(float) = result {
@@ -227,7 +227,7 @@ fn test_eval_multiplication_with_floats() {
 
 #[test]
 fn test_eval_simple_division() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(/ 4 2)", env);
 
     if let DataType::Integer(num_result) = result {
@@ -239,7 +239,7 @@ fn test_eval_simple_division() {
 
 #[test]
 fn test_eval_division_with_negatives() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(/ -18 -6)", env);
 
     if let DataType::Integer(num_result) = result {
@@ -251,7 +251,7 @@ fn test_eval_division_with_negatives() {
 
 #[test]
 fn test_eval_division_with_floats() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(/ 2.25 1.5)", env);
 
     if let DataType::Float(float) = result {
@@ -263,7 +263,7 @@ fn test_eval_division_with_floats() {
 
 #[test]
 fn test_simple_def() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let _ = run_line("(def! a 3)", env.clone());
     let result = run_line("a", env.clone());
 
@@ -276,7 +276,7 @@ fn test_simple_def() {
 
 #[test]
 fn test_simple_let() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(let* (c 3) c)", env.clone());
 
     if let DataType::Integer(int) = result {
@@ -288,7 +288,7 @@ fn test_simple_let() {
 
 #[test]
 fn test_simple_do() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(do 1 2 3 4)", env.clone());
 
     if let DataType::Integer(int) = result {
@@ -301,7 +301,7 @@ fn test_simple_do() {
 #[test]
 #[should_panic]
 fn test_env_leak() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(let* (c 18) c)", env.clone());
 
     if let DataType::Integer(int) = result {
@@ -314,7 +314,7 @@ fn test_env_leak() {
 
 #[test]
 fn test_simple_function() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(def! x (fn* (a) a))", env.clone());
 
     let DataType::Closure(_) = result else {
@@ -331,7 +331,7 @@ fn test_simple_function() {
 
 #[test]
 fn test_simple_load_file() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let _ = run_line(
         "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))",
         env.clone(),
@@ -348,7 +348,7 @@ fn test_simple_load_file() {
 
 #[test]
 fn test_create_atom() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(def! x (atom 3))", env.clone());
 
     let DataType::Atom(_) = result else {
@@ -365,7 +365,7 @@ fn test_create_atom() {
 
 #[test]
 fn test_reset_atom() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let _ = run_line("(def! x (atom 3))", env.clone());
     let _ = run_line("(reset! x 4)", env.clone());
 
@@ -379,7 +379,7 @@ fn test_reset_atom() {
 
 #[test]
 fn test_cons() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(cons 1 (list 2 3))", env.clone());
     if let DataType::List(list) = result {
         assert_eq!(
@@ -397,7 +397,7 @@ fn test_cons() {
 
 #[test]
 fn test_quote() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(quote (b c))", env.clone());
     if let DataType::List(list) = result {
         assert_eq!(
@@ -414,7 +414,7 @@ fn test_quote() {
 
 #[test]
 fn test_quasiquote() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let result = run_line("(quasiquote (a lst d))", env.clone());
 
     if let DataType::List(list) = result {
@@ -433,7 +433,7 @@ fn test_quasiquote() {
 
 #[test]
 fn test_quasiquote_unquote() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let _ = run_line("(def! lst (quote (b c)))", env.clone());
     let result = run_line("(quasiquote (a (unquote lst) d))", env.clone());
 
@@ -456,7 +456,7 @@ fn test_quasiquote_unquote() {
 
 #[test]
 fn test_splice_unquote() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let _ = run_line("(def! lst (quote (b c)))", env.clone());
     let result = run_line("(quasiquote (a (splice-unquote lst) d))", env.clone());
 
@@ -477,7 +477,7 @@ fn test_splice_unquote() {
 
 #[test]
 fn test_macros() {
-    let env = create_repl_env();
+    let env = create_default_repl_env();
     let _ = run_line(
         "(defmacro! unless (fn* (pred a b) `(if ~pred ~b ~a)))",
         env.clone(),

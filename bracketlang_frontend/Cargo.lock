@@ -12,17 +12,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "bracketlang_backend"
+name = "bracketlang"
 version = "0.1.0"
 dependencies = [
  "regex",
-]
-
-[[package]]
-name = "bracketlang_frontend"
-version = "0.1.0"
-dependencies = [
- "bracketlang_backend",
 ]
 
 [[package]]
