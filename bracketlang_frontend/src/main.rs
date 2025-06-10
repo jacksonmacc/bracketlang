@@ -1,19 +1,5 @@
-use bracketlang_backend::{self, create_default_repl_env, re, rep, variable_type::{DataType, Environment}};
-use std::{
-    cell::RefCell,
-    io::{Write, stdin, stdout},
-    rc::Rc,
-};
-
-fn run_preamble(preamble: &str, repl_env: Rc<RefCell<Environment>>) {
-    match re(preamble.to_string(), repl_env.clone()) {
-        Err(e) => {
-            println!("Error in core function definition! {}", e);
-            return;
-        }
-        _ => (),
-    };
-}
+use bracketlang_backend::{create_default_repl_env, rep, run_preamble, variable_type::DataType};
+use std::io::{Write, stdin, stdout};
 
 fn main() {
     let repl_env = create_default_repl_env();

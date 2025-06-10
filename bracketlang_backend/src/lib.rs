@@ -3,6 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use evaluator::eval;
 use reader::{ParseError, Reader, get_regex, tokenize};
 use variable_type::DataType;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{env::*, variable_type::Environment};
 
@@ -22,6 +23,49 @@ fn read(input: String) -> Result<DataType, ParseError> {
 
 fn print(input: DataType) -> String {
     format!("{:?}", input)
+}
+
+pub fn run_preamble(preamble: &str, repl_env: Rc<RefCell<Environment>>) {
+    match re(preamble.to_string(), repl_env.clone()) {
+        Err(e) => {
+            println!("Error in core function definition! {}", e);
+            return;
+        }
+        _ => (),
+    };
+}
+
+#[wasm_bindgen]
+pub struct EnvironmentHolder {
+    env: Rc<RefCell<Environment>>,
+}
+
+impl EnvironmentHolder {
+    pub fn get(&self) -> Rc<RefCell<Environment>> {
+        return self.env.clone();
+    }
+}
+
+#[wasm_bindgen]
+pub fn create_default_env() -> EnvironmentHolder {
+    let repl_env = create_default_repl_env();
+
+    run_preamble("(def! not (fn* (a) (if a false true)))", repl_env.clone());
+    run_preamble(
+        "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))",
+        repl_env.clone(),
+    );
+    run_preamble(
+        "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))",
+        repl_env.clone(),
+    );
+
+    EnvironmentHolder { env: repl_env }
+}
+
+#[wasm_bindgen]
+pub fn evaluate_string(input: &str, env: &mut EnvironmentHolder) -> Option<String> {
+    rep(input.to_string(), env.get())
 }
 
 pub fn rep(input: String, repl_env: Rc<RefCell<Environment>>) -> Option<String> {
