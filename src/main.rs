@@ -87,6 +87,13 @@ fn main() {
 
     let args: Vec<String> = std::env::args().collect();
     if let Some(filename) = args.get(1) {
+        let mut repl_args = vec![];
+        for arg in &args[2..] {
+            repl_args.push(DataType::String(arg.clone()));
+        }
+        repl_env
+            .borrow_mut()
+            .set("*ARGV*".to_string(), DataType::List(repl_args));
         match rep(format!("(load-file \"{}\")", filename), repl_env.clone()) {
             Some(res) => {
                 println!("{}", res);
@@ -94,10 +101,6 @@ fn main() {
             }
             None => return,
         }
-    }
-
-    if args.len() > 2 {
-        println!("Usage: bracketlang FILE");
     }
 
     loop {
