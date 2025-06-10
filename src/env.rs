@@ -1,6 +1,8 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::fs;
 use std::rc::Rc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::evaluator::{Environment, RuntimeError};
 use crate::read;
@@ -60,7 +62,25 @@ pub fn create_repl_env() -> Rc<RefCell<Environment>> {
         CHECK_NIL,
         CHECK_TRUE,
         CHECK_FALSE,
-        CHECK_SYMBOL
+        CHECK_SYMBOL,
+        CHECK_VECTOR,
+        CHECK_DICTIONARY,
+        CHECK_SEQUENTIAL,
+        SYMBOL,
+        DICTIONARY,
+        VECTOR,
+        ASSOC,
+        DISSOC,
+        GET,
+        CONTAINS,
+        KEYS,
+        VALUES,
+        CHECK_STR,
+        CHECK_INTEGER,
+        CHECK_FLOAT,
+        CHECK_FN,
+        CHECK_MACRO,
+        TIME_MS
     );
 
     Rc::new(RefCell::new(repl_env))
@@ -186,6 +206,17 @@ const LIST: CoreFunction = CoreFunction {
             children.push(value.clone());
         }
         Ok(DataType::List(children))
+    },
+};
+
+const VECTOR: CoreFunction = CoreFunction {
+    id: "vector",
+    func: |values: &[DataType]| {
+        let mut children = vec![];
+        for value in values {
+            children.push(value.clone());
+        }
+        Ok(DataType::Vector(children))
     },
 };
 
@@ -478,13 +509,13 @@ const CONS: CoreFunction = CoreFunction {
     func: |values: &[DataType]| {
         let Some(value) = values.first() else {
             return Err(RuntimeError {
-                msg: "Incorrect arguments to deref".to_string(),
+                msg: "Incorrect arguments to cons".to_string(),
             });
         };
 
         let Some(DataType::List(list) | DataType::Vector(list)) = values.get(1) else {
             return Err(RuntimeError {
-                msg: "Incorrect arguments to deref".to_string(),
+                msg: "Incorrect arguments to cons".to_string(),
             });
         };
 
@@ -542,7 +573,7 @@ const FIRST: CoreFunction = CoreFunction {
     func: |values: &[DataType]| {
         let Some(List(list) | Vector(list)) = values.get(0) else {
             return Err(RuntimeError {
-                msg: "Wrong arguments for nth".to_string(),
+                msg: "Wrong arguments for first".to_string(),
             });
         };
 
@@ -562,7 +593,7 @@ const REST: CoreFunction = CoreFunction {
     func: |values: &[DataType]| {
         let Some(List(list) | Vector(list)) = values.get(0) else {
             return Err(RuntimeError {
-                msg: "Wrong arguments for nth".to_string(),
+                msg: "Wrong arguments for rest".to_string(),
             });
         };
 
@@ -667,4 +698,205 @@ const CHECK_FALSE: CoreFunction = CoreFunction {
 const CHECK_SYMBOL: CoreFunction = CoreFunction {
     id: "symbol?",
     func: type_check!(DataType::Symbol(_)),
+};
+
+const CHECK_VECTOR: CoreFunction = CoreFunction {
+    id: "vector?",
+    func: type_check!(DataType::Vector(_)),
+};
+
+const CHECK_SEQUENTIAL: CoreFunction = CoreFunction {
+    id: "sequential?",
+    func: type_check!(DataType::Vector(_) | DataType::List(_)),
+};
+
+const CHECK_DICTIONARY: CoreFunction = CoreFunction {
+    id: "dict?",
+    func: type_check!(DataType::Dictionary(_)),
+};
+
+const CHECK_STR: CoreFunction = CoreFunction {
+    id: "string?",
+    func: type_check!(DataType::String(_)),
+};
+
+const CHECK_INTEGER: CoreFunction = CoreFunction {
+    id: "int?",
+    func: type_check!(DataType::Integer(_)),
+};
+
+const CHECK_FLOAT: CoreFunction = CoreFunction {
+    id: "float?",
+    func: type_check!(DataType::Float(_)),
+};
+
+const CHECK_FN: CoreFunction = CoreFunction {
+    id: "func?",
+    func: type_check!(DataType::Closure(_) | DataType::NativeFunction(_)),
+};
+
+const CHECK_MACRO: CoreFunction = CoreFunction {
+    id: "macro?",
+    func: |values: &[DataType]| match values.first() {
+        Some(DataType::Closure(closure)) if closure.is_macro => Ok(DataType::Bool(true)),
+        None => Err(RuntimeError {
+            msg: "No arguments given to data type check".to_string(),
+        }),
+        _ => Ok(DataType::Bool(false)),
+    },
+};
+
+const SYMBOL: CoreFunction = CoreFunction {
+    id: "symbol",
+    func: |values: &[DataType]| {
+        let Some(String(val)) = values.first() else {
+            return Err(RuntimeError {
+                msg: "Not enough arguments to symbol".to_string(),
+            });
+        };
+
+        Ok(DataType::Symbol(val.clone()))
+    },
+};
+
+const DICTIONARY: CoreFunction = CoreFunction {
+    id: "dict",
+    func: |values: &[DataType]| {
+        let mut i = 0;
+        let mut result = HashMap::new();
+
+        loop {
+            let Some(key) = values.get(i) else {
+                break;
+            };
+            let Some(value) = values.get(i + 1) else {
+                return Err(RuntimeError {
+                    msg: "No value to match key in dict".to_string(),
+                });
+            };
+            result.insert(format!("{:?}", key), value.clone());
+            i += 2;
+        }
+
+        Ok(Dictionary(result))
+    },
+};
+
+const ASSOC: CoreFunction = CoreFunction {
+    id: "assoc",
+    func: |values: &[DataType]| {
+        let Some(Dictionary(dict)) = values.first() else {
+            return Err(RuntimeError {
+                msg: "Incorrect arguments for assoc".to_string(),
+            });
+        };
+        let mut i = 0;
+        let mut result = dict.clone();
+
+        loop {
+            let Some(key) = values.get(i) else {
+                break;
+            };
+            let Some(value) = values.get(i + 1) else {
+                return Err(RuntimeError {
+                    msg: "No value to match key in assoc".to_string(),
+                });
+            };
+            result.insert(format!("{:?}", key), value.clone());
+            i += 2;
+        }
+
+        Ok(Dictionary(result))
+    },
+};
+
+const DISSOC: CoreFunction = CoreFunction {
+    id: "dissoc",
+    func: |values: &[DataType]| {
+        let Some(Dictionary(dict)) = values.first() else {
+            return Err(RuntimeError {
+                msg: "Incorrect arguments for dissoc".to_string(),
+            });
+        };
+        let mut i = 0;
+        let mut result = dict.clone();
+
+        loop {
+            let Some(key) = values.get(i) else {
+                break;
+            };
+
+            result.remove(&format!("{:?}", key));
+            i += 1;
+        }
+
+        Ok(Dictionary(result))
+    },
+};
+
+const GET: CoreFunction = CoreFunction {
+    id: "get",
+    func: |values: &[DataType]| {
+        let (Some(Dictionary(dict)), Some(key)) = (values.get(0), values.get(1)) else {
+            return Err(RuntimeError {
+                msg: "Incorrect arguments for get".to_string(),
+            });
+        };
+        match dict.get(&format!("{:?}", key)) {
+            Some(val) => Ok(val.clone()),
+            None => Err(RuntimeError {
+                msg: "Key not found in dict".to_string(),
+            }),
+        }
+    },
+};
+
+const CONTAINS: CoreFunction = CoreFunction {
+    id: "contains",
+    func: |values: &[DataType]| {
+        let (Some(Dictionary(dict)), Some(key)) = (values.get(0), values.get(1)) else {
+            return Err(RuntimeError {
+                msg: "Incorrect arguments for contains".to_string(),
+            });
+        };
+        Ok(Bool(dict.contains_key(&format!("{:?}", key))))
+    },
+};
+
+const KEYS: CoreFunction = CoreFunction {
+    id: "keys",
+    func: |values: &[DataType]| {
+        let Some(Dictionary(dict)) = values.get(0) else {
+            return Err(RuntimeError {
+                msg: "Incorrect arguments for keys".to_string(),
+            });
+        };
+        Ok(List(dict.keys().cloned().map(|val| String(val)).collect()))
+    },
+};
+
+const VALUES: CoreFunction = CoreFunction {
+    id: "values",
+    func: |values: &[DataType]| {
+        let Some(Dictionary(dict)) = values.get(0) else {
+            return Err(RuntimeError {
+                msg: "Incorrect arguments for values".to_string(),
+            });
+        };
+        Ok(List(dict.values().cloned().collect()))
+    },
+};
+
+const TIME_MS: CoreFunction = CoreFunction {
+    id: "time-ms",
+    func: |_values: &[DataType]| {
+        Ok(Integer(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis()
+                .try_into()
+                .unwrap(),
+        ))
+    },
 };
