@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, ptr::addr_of, rc::Rc};
 
-use crate::evaluator::{Environment, EvalError};
+use crate::evaluator::{Environment, RuntimeError};
 
 #[derive(Clone)]
 pub struct Closure {
@@ -24,7 +24,7 @@ pub enum DataType {
     Vector(Vec<DataType>),
     Dictionary(HashMap<String, DataType>),
     Closure(Closure),
-    NativeFunction((i8, &'static fn(&[DataType]) -> Result<DataType, EvalError>)),
+    NativeFunction((i8, &'static fn(&[DataType]) -> Result<DataType, RuntimeError>)),
     Atom(Rc<RefCell<DataType>>),
 }
 

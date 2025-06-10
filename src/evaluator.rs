@@ -3,7 +3,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use crate::variable_type::{Closure, DataType};
 
 #[derive(Debug)]
-pub struct EvalError {
+pub struct RuntimeError {
     pub msg: String,
 }
 
@@ -43,7 +43,7 @@ pub fn eval<'a>(
     ast: &'a DataType,
     current_env: Rc<RefCell<Environment>>,
     repl_env: Rc<RefCell<Environment>>,
-) -> Result<DataType, EvalError> {
+) -> Result<DataType, RuntimeError> {
     let mut ast = Box::new(ast.clone()); // TODO: Lots of memory usage here...
     let mut current_env: Rc<RefCell<Environment>> = current_env;
 
@@ -54,12 +54,17 @@ pub fn eval<'a>(
                     Some(DataType::Symbol(val)) if *val == "def!".to_string() => {
                         return eval_def(&children[1..], current_env.clone(), repl_env.clone());
                     }
+
                     Some(DataType::Symbol(val)) if *val == "defmacro!".to_string() => {
                         return eval_defmacro(
                             &children[1..],
                             current_env.clone(),
                             repl_env.clone(),
                         );
+                    }
+
+                    Some(DataType::Symbol(val)) if *val == "try*".to_string() => {
+                        return eval_try(&children[1..], current_env.clone(), repl_env.clone());
                     }
 
                     Some(DataType::Symbol(val)) if *val == "quote".to_string() => {
@@ -119,7 +124,7 @@ pub fn eval<'a>(
 
                     Some(DataType::Symbol(val)) if *val == "eval".to_string() => {
                         let Some(new_ast) = children.get(1) else {
-                            return Err(EvalError {
+                            return Err(RuntimeError {
                                 msg: "No value given to eval".to_string(),
                             });
                         };
@@ -156,7 +161,7 @@ pub fn eval<'a>(
                 let evaluated: Vec<DataType> = children
                     .iter()
                     .map(|child| eval(child, current_env.clone(), repl_env.clone()))
-                    .collect::<Result<_, EvalError>>()?;
+                    .collect::<Result<_, RuntimeError>>()?;
 
                 match evaluated.first() {
                     Some(DataType::Closure(function)) => {
@@ -171,7 +176,7 @@ pub fn eval<'a>(
                     }
 
                     None | Some(_) => {
-                        return Err(EvalError {
+                        return Err(RuntimeError {
                             msg: format!("Cannot call list as function!"),
                         });
                     }
@@ -182,7 +187,7 @@ pub fn eval<'a>(
                 let evaluated: Vec<DataType> = list
                     .iter()
                     .map(|child| eval(child, current_env.clone(), repl_env.clone()))
-                    .collect::<Result<_, EvalError>>()?;
+                    .collect::<Result<_, RuntimeError>>()?;
 
                 return Ok(DataType::Vector(evaluated));
             }
@@ -196,7 +201,7 @@ pub fn eval<'a>(
                             Err(err) => Err(err),
                         },
                     )
-                    .collect::<Result<HashMap<String, DataType>, EvalError>>()?;
+                    .collect::<Result<HashMap<String, DataType>, RuntimeError>>()?;
 
                 return Ok(DataType::Dictionary(evaluated));
             }
@@ -205,7 +210,7 @@ pub fn eval<'a>(
                 if let Some(val) = current_env.borrow_mut().get(&sym) {
                     return Ok(val);
                 } else {
-                    return Err(EvalError {
+                    return Err(RuntimeError {
                         msg: format!("Unknown symbol: {}", sym),
                     });
                 };
@@ -220,14 +225,14 @@ fn eval_def(
     args: &[DataType],
     env: Rc<RefCell<Environment>>,
     repl_env: Rc<RefCell<Environment>>,
-) -> Result<DataType, EvalError> {
+) -> Result<DataType, RuntimeError> {
     if let (Some(DataType::Symbol(sym)), Some(val)) = (args.get(0), args.get(1)) {
         let evaluated_val = eval(val, env.clone(), repl_env)?;
         env.borrow_mut().set(sym.to_owned(), evaluated_val.clone());
 
         return Ok(evaluated_val);
     } else {
-        return Err(EvalError {
+        return Err(RuntimeError {
             msg: "Incorrect usage of def!".to_string(),
         });
     }
@@ -237,7 +242,7 @@ fn eval_defmacro(
     args: &[DataType],
     env: Rc<RefCell<Environment>>,
     repl_env: Rc<RefCell<Environment>>,
-) -> Result<DataType, EvalError> {
+) -> Result<DataType, RuntimeError> {
     if let (Some(DataType::Symbol(sym)), Some(val)) = (args.get(0), args.get(1)) {
         if let DataType::Closure(cl) = eval(&val, env.clone(), repl_env.clone())? {
             let val = DataType::Closure(Closure {
@@ -249,22 +254,51 @@ fn eval_defmacro(
 
             return Ok(val);
         } else {
-            return Err(EvalError {
+            return Err(RuntimeError {
                 msg: "Expected closure for macro".to_string(),
             });
         }
     } else {
-        return Err(EvalError {
-            msg: "Incorrect usage of def!".to_string(),
+        return Err(RuntimeError {
+            msg: "Incorrect usage of defmacro!".to_string(),
         });
     }
 }
 
-fn eval_quote(args: &[DataType]) -> Result<DataType, EvalError> {
+fn eval_try(
+    args: &[DataType],
+    env: Rc<RefCell<Environment>>,
+    repl_env: Rc<RefCell<Environment>>,
+) -> Result<DataType, RuntimeError> {
+    println!("{:?}", (args.get(0), args.get(1)));
+    if let (Some(ast), Some(closure)) = (args.get(0), args.get(1)) {
+        let Ok(DataType::Closure(closure)) = eval(closure, env.clone(), repl_env.clone()) else {
+            return Err(RuntimeError {
+                msg: "Incorrect usage of try!".to_string(),
+            });
+        };
+
+        let result = eval(ast, env.clone(), repl_env.clone());
+
+        match result {
+            Ok(v) => Ok(v),
+            Err(err) => {
+                let x = [DataType::String(err.msg)];
+                closure.func(&x)
+            }
+        }
+    } else {
+        return Err(RuntimeError {
+            msg: "Incorrect usage of try!".to_string(),
+        });
+    }
+}
+
+fn eval_quote(args: &[DataType]) -> Result<DataType, RuntimeError> {
     if let Some(val) = args.get(0) {
         return Ok(val.clone());
     } else {
-        return Err(EvalError {
+        return Err(RuntimeError {
             msg: "Incorrect usage of quote".to_string(),
         });
     }
@@ -274,7 +308,7 @@ fn eval_quasiquote(
     args: &[DataType],
     env: Rc<RefCell<Environment>>,
     repl_env: Rc<RefCell<Environment>>,
-) -> Result<DataType, EvalError> {
+) -> Result<DataType, RuntimeError> {
     if let Some(DataType::List(list)) = args.get(0) {
         let mut result = vec![];
         for value in list {
@@ -289,7 +323,7 @@ fn eval_quasiquote(
                         let Ok(DataType::List(inner_values)) =
                             eval(inner_values, env.clone(), repl_env.clone())
                         else {
-                            return Err(EvalError {
+                            return Err(RuntimeError {
                                 msg: "List not given to splice-unquote".to_string(),
                             });
                         };
@@ -307,7 +341,7 @@ fn eval_quasiquote(
         }
         Ok(DataType::List(result))
     } else {
-        return Err(EvalError {
+        return Err(RuntimeError {
             msg: "Incorrect usage of quote".to_string(),
         });
     }
@@ -316,7 +350,7 @@ fn eval_quasiquote(
 fn prepare_tail_call_let<'a>(
     args: &'a [DataType],
     env: Rc<RefCell<Environment>>,
-) -> Result<(&'a DataType, Environment), EvalError> {
+) -> Result<(&'a DataType, Environment), RuntimeError> {
     if let (Some(DataType::List(children)), Some(data)) = (args.get(0), args.get(1)) {
         let mut new_env = Environment::new(Some(env.clone()));
         let mut i = 0;
@@ -327,7 +361,7 @@ fn prepare_tail_call_let<'a>(
                     if let Some(val2) = children.get(i + 1) {
                         new_env.set(val1.to_owned(), val2.clone());
                     } else {
-                        return Err(EvalError {
+                        return Err(RuntimeError {
                             msg: "Each symbol in a let* environment should have a value"
                                 .to_string(),
                         });
@@ -335,7 +369,7 @@ fn prepare_tail_call_let<'a>(
                 }
 
                 Some(_) => {
-                    return Err(EvalError {
+                    return Err(RuntimeError {
                         msg: "Invalid symbol to set in let*".to_string(),
                     });
                 }
@@ -349,7 +383,7 @@ fn prepare_tail_call_let<'a>(
         }
         return Ok((data, new_env));
     } else {
-        return Err(EvalError {
+        return Err(RuntimeError {
             msg: "Incorrect arguments for let*".to_string(),
         });
     }
@@ -359,14 +393,14 @@ fn prepare_tail_call_do<'a>(
     args: &'a [DataType],
     env: Rc<RefCell<Environment>>,
     repl_env: Rc<RefCell<Environment>>,
-) -> Result<&'a DataType, EvalError> {
+) -> Result<&'a DataType, RuntimeError> {
     for child in &args[..args.len() - 1] {
         eval(child, env.clone(), repl_env.clone())?;
     }
     if let Some(final_child) = args.last() {
         Ok(final_child)
     } else {
-        return Err(EvalError {
+        return Err(RuntimeError {
             msg: "No arguments given for do".to_string(),
         });
     }
@@ -376,9 +410,9 @@ fn prepare_tail_call_if<'a>(
     args: &'a [DataType],
     env: Rc<RefCell<Environment>>,
     repl_env: Rc<RefCell<Environment>>,
-) -> Result<&'a DataType, EvalError> {
+) -> Result<&'a DataType, RuntimeError> {
     let Some(condition) = args.get(0) else {
-        return Err(EvalError {
+        return Err(RuntimeError {
             msg: "No condition for if expression".to_string(),
         });
     };
@@ -394,7 +428,7 @@ fn prepare_tail_call_if<'a>(
             if let Some(arg) = args.get(1) {
                 return Ok(arg);
             } else {
-                return Err(EvalError {
+                return Err(RuntimeError {
                     msg: "No body for if expression".to_string(),
                 });
             }
@@ -406,7 +440,7 @@ fn eval_closure(
     args: &[DataType],
     env: Rc<RefCell<Environment>>,
     repl_env: Rc<RefCell<Environment>>,
-) -> Result<DataType, EvalError> {
+) -> Result<DataType, RuntimeError> {
     if let Some(DataType::List(params)) = args.get(0) {
         let param_names = params
             .iter()
@@ -414,12 +448,12 @@ fn eval_closure(
                 if let DataType::Symbol(param_name) = param {
                     Ok(param_name.clone())
                 } else {
-                    Err(EvalError {
+                    Err(RuntimeError {
                         msg: format!("{:?} cannot be used as a parameter name", param),
                     })
                 }
             })
-            .collect::<Result<Vec<String>, EvalError>>()?;
+            .collect::<Result<Vec<String>, RuntimeError>>()?;
 
         let closure_env = Rc::new(RefCell::new(Environment {
             outer: Some(env.clone()),
@@ -427,7 +461,7 @@ fn eval_closure(
         }));
 
         let Some(closure_body_ref) = args.get(1) else {
-            return Err(EvalError {
+            return Err(RuntimeError {
                 msg: "No body for closure".to_string(),
             });
         };
@@ -440,14 +474,14 @@ fn eval_closure(
             is_macro: false,
         }));
     } else {
-        return Err(EvalError {
+        return Err(RuntimeError {
             msg: "Expected parameter list for function".to_string(),
         });
     }
 }
 
 impl Closure {
-    pub fn func(&self, args: &[DataType]) -> Result<DataType, EvalError> {
+    pub fn func(&self, args: &[DataType]) -> Result<DataType, RuntimeError> {
         let (ast, environment) = self.prepare_tail_call(args)?;
 
         eval(ast, environment, self.repl_env.clone())
@@ -456,14 +490,14 @@ impl Closure {
     pub fn prepare_tail_call(
         &self,
         args: &[DataType],
-    ) -> Result<(&DataType, Rc<RefCell<Environment>>), EvalError> {
+    ) -> Result<(&DataType, Rc<RefCell<Environment>>), RuntimeError> {
         let mut i = 0;
 
         loop {
             let (name, param) = match (self.params.get(i), args.get(i)) {
                 (Some(ampersand), Some(_)) if ampersand == "&" => {
                     let Some(name) = self.params.get(i + 1) else {
-                        return Err(EvalError {
+                        return Err(RuntimeError {
                             msg: "& found in closure without variadic argument name".to_string(),
                         });
                     };
@@ -493,7 +527,7 @@ impl Closure {
                 }
 
                 _ => {
-                    return Err(EvalError {
+                    return Err(RuntimeError {
                         msg: "Parameters given do not match expected parameters".to_string(),
                     });
                 }

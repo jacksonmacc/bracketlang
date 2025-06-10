@@ -31,12 +31,12 @@ fn print(input: DataType) -> String {
 fn rep(input: String, repl_env: Rc<RefCell<Environment>>) -> Option<String> {
     let ast = match read(input) {
         Ok(r) => r,
-        Err(e) => return Some(e.msg),
+        Err(e) => return Some(format!("PARSE ERROR: {}", e.msg)),
     };
 
     let eval_result = match eval(&ast, repl_env.clone(), repl_env.clone()) {
         Ok(r) => r,
-        Err(e) => return Some(e.msg),
+        Err(e) => return Some(format!("RUNTIME ERROR: {}", e.msg)),
     };
 
     if let DataType::Nil() = eval_result {

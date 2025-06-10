@@ -2,14 +2,14 @@ use std::cell::RefCell;
 use std::fs;
 use std::rc::Rc;
 
-use crate::evaluator::{Environment, EvalError};
+use crate::evaluator::{Environment, RuntimeError};
 use crate::read;
 use crate::variable_type::DataType;
 use crate::variable_type::DataType::*;
 
 pub struct CoreFunction {
     pub id: &'static str,
-    pub func: fn(&[DataType]) -> Result<DataType, EvalError>,
+    pub func: fn(&[DataType]) -> Result<DataType, RuntimeError>,
 }
 
 #[allow(unused_assignments)]
@@ -53,7 +53,8 @@ pub fn create_repl_env() -> Rc<RefCell<Environment>> {
         CONCAT,
         NTH,
         FIRST,
-        REST
+        REST,
+        THROW
     );
 
     Rc::new(RefCell::new(repl_env))
@@ -70,12 +71,12 @@ const ADDITION: CoreFunction = CoreFunction {
 
                 (Some(String(str1)), Some(String(str2))) => Ok(String(str1.to_owned() + str2)),
 
-                _ => Err(EvalError {
+                _ => Err(RuntimeError {
                     msg: "Incorrect types for addition!".to_string(),
                 }),
             }
         } else {
-            Err(EvalError {
+            Err(RuntimeError {
                 msg: "Incorrect number of arguments for addition".to_string(),
             })
         }
@@ -91,12 +92,12 @@ const MULTIPLICATION: CoreFunction = CoreFunction {
 
                 (Some(Float(num1)), Some(Float(num2))) => Ok(Float(num1 * num2)),
 
-                _ => Err(EvalError {
+                _ => Err(RuntimeError {
                     msg: "Incorrect types for addition!".to_string(),
                 }),
             }
         } else {
-            Err(EvalError {
+            Err(RuntimeError {
                 msg: "Incorrect number of arguments for addition".to_string(),
             })
         }
@@ -111,12 +112,12 @@ const SUBTRACTION: CoreFunction = CoreFunction {
 
                 (Some(Float(num1)), Some(Float(num2))) => Ok(Float(num1 - num2)),
 
-                _ => Err(EvalError {
+                _ => Err(RuntimeError {
                     msg: "Incorrect types for subtraction!".to_string(),
                 }),
             }
         } else {
-            Err(EvalError {
+            Err(RuntimeError {
                 msg: "Incorrect number of arguments for subtraction".to_string(),
             })
         }
@@ -132,12 +133,12 @@ const DIVISION: CoreFunction = CoreFunction {
 
                 (Some(Float(num1)), Some(Float(num2))) => Ok(Float(num1 / num2)),
 
-                _ => Err(EvalError {
+                _ => Err(RuntimeError {
                     msg: "Incorrect types for division".to_string(),
                 }),
             }
         } else {
-            Err(EvalError {
+            Err(RuntimeError {
                 msg: "Incorrect number of arguments for division".to_string(),
             })
         }
@@ -175,7 +176,7 @@ const CHECK_LIST: CoreFunction = CoreFunction {
     id: "list?",
     func: |values: &[DataType]| match values.first() {
         Some(DataType::List(_)) => Ok(DataType::Bool(true)),
-        None => Err(EvalError {
+        None => Err(RuntimeError {
             msg: "No arguments given to list?".to_string(),
         }),
         _ => Ok(DataType::Bool(false)),
@@ -192,7 +193,7 @@ const LIST_EMPTY: CoreFunction = CoreFunction {
                 Ok(DataType::Bool(false))
             }
         } else {
-            Err(EvalError {
+            Err(RuntimeError {
                 msg: "No arguments given to empty?".to_string(),
             })
         }
@@ -206,14 +207,14 @@ const LIST_LEN: CoreFunction = CoreFunction {
             let length = match children.len().try_into() {
                 Ok(l) => l,
                 Err(_) => {
-                    return Err(EvalError {
+                    return Err(RuntimeError {
                         msg: "List is too long to return length!".to_string(),
                     });
                 }
             };
             Ok(DataType::Integer(length))
         } else {
-            Err(EvalError {
+            Err(RuntimeError {
                 msg: "No arguments given to empty?".to_string(),
             })
         }
@@ -224,7 +225,7 @@ const EQUALS: CoreFunction = CoreFunction {
     id: "=",
     func: |values: &[DataType]| {
         let (Some(var1), Some(var2)) = (values.get(0), values.get(1)) else {
-            return Err(EvalError {
+            return Err(RuntimeError {
                 msg: "Not enough arguments passed to =".to_string(),
             });
         };
@@ -243,12 +244,12 @@ const GREATER_THAN: CoreFunction = CoreFunction {
 
                 (Some(Float(num1)), Some(Float(num2))) => Ok(Bool(num1 > num2)),
 
-                _ => Err(EvalError {
+                _ => Err(RuntimeError {
                     msg: "Incorrect types for subtraction!".to_string(),
                 }),
             }
         } else {
-            Err(EvalError {
+            Err(RuntimeError {
                 msg: "Incorrect number of arguments for subtraction".to_string(),
             })
         }
@@ -264,12 +265,12 @@ const LESS_THAN: CoreFunction = CoreFunction {
 
                 (Some(Float(num1)), Some(Float(num2))) => Ok(Bool(num1 < num2)),
 
-                _ => Err(EvalError {
+                _ => Err(RuntimeError {
                     msg: "Incorrect types for subtraction!".to_string(),
                 }),
             }
         } else {
-            Err(EvalError {
+            Err(RuntimeError {
                 msg: "Incorrect number of arguments for subtraction".to_string(),
             })
         }
@@ -285,12 +286,12 @@ const GREATER_THAN_OR_EQUALS: CoreFunction = CoreFunction {
 
                 (Some(Float(num1)), Some(Float(num2))) => Ok(Bool(num1 >= num2)),
 
-                _ => Err(EvalError {
+                _ => Err(RuntimeError {
                     msg: "Incorrect types for subtraction!".to_string(),
                 }),
             }
         } else {
-            Err(EvalError {
+            Err(RuntimeError {
                 msg: "Incorrect number of arguments for subtraction".to_string(),
             })
         }
@@ -306,12 +307,12 @@ const LESS_THAN_OR_EQUALS: CoreFunction = CoreFunction {
 
                 (Some(Float(num1)), Some(Float(num2))) => Ok(Bool(num1 <= num2)),
 
-                _ => Err(EvalError {
+                _ => Err(RuntimeError {
                     msg: "Incorrect types for subtraction!".to_string(),
                 }),
             }
         } else {
-            Err(EvalError {
+            Err(RuntimeError {
                 msg: "Incorrect number of arguments for subtraction".to_string(),
             })
         }
@@ -325,15 +326,15 @@ const READ_STR: CoreFunction = CoreFunction {
             match values.get(0) {
                 Some(String(str)) => match read(str.to_string()) {
                     Ok(val) => Ok(val),
-                    Err(e) => Err(EvalError { msg: e.msg }),
+                    Err(e) => Err(RuntimeError { msg: e.msg }),
                 },
 
-                _ => Err(EvalError {
+                _ => Err(RuntimeError {
                     msg: "Incorrect arguments for read-str!".to_string(),
                 }),
             }
         } else {
-            Err(EvalError {
+            Err(RuntimeError {
                 msg: "Incorrect number of arguments for read-str".to_string(),
             })
         }
@@ -347,17 +348,17 @@ const SLURP: CoreFunction = CoreFunction {
             match values.get(0) {
                 Some(String(path)) => match fs::read_to_string(path) {
                     Ok(file) => Ok(DataType::String(file)),
-                    Err(e) => Err(EvalError {
+                    Err(e) => Err(RuntimeError {
                         msg: format!("Couldn't load file: {}", e.to_string()),
                     }),
                 },
 
-                _ => Err(EvalError {
+                _ => Err(RuntimeError {
                     msg: "Incorrect arguments for slurp!".to_string(),
                 }),
             }
         } else {
-            Err(EvalError {
+            Err(RuntimeError {
                 msg: "Incorrect number of arguments for slurp".to_string(),
             })
         }
@@ -370,7 +371,7 @@ const STR: CoreFunction = CoreFunction {
         let mut end_str = "".to_string();
         for value in values {
             let DataType::String(str) = value else {
-                return Err(EvalError {
+                return Err(RuntimeError {
                     msg: "All arguments to str should be strings".to_string(),
                 });
             };
@@ -386,7 +387,7 @@ const ATOM: CoreFunction = CoreFunction {
     id: "atom",
     func: |values: &[DataType]| {
         let Some(val) = values.first() else {
-            return Err(EvalError {
+            return Err(RuntimeError {
                 msg: "Not enough arguments to atom".to_string(),
             });
         };
@@ -399,7 +400,7 @@ const CHECK_ATOM: CoreFunction = CoreFunction {
     id: "atom?",
     func: |values: &[DataType]| {
         let Some(_) = values.first() else {
-            return Err(EvalError {
+            return Err(RuntimeError {
                 msg: "Not enough arguments to atom?".to_string(),
             });
         };
@@ -416,7 +417,7 @@ pub const DEREF: CoreFunction = CoreFunction {
     id: "deref",
     func: |values: &[DataType]| {
         let Some(Atom(atom)) = values.first() else {
-            return Err(EvalError {
+            return Err(RuntimeError {
                 msg: "Incorrect arguments to deref".to_string(),
             });
         };
@@ -429,13 +430,13 @@ const RESET_ATOM: CoreFunction = CoreFunction {
     id: "reset!",
     func: |values: &[DataType]| {
         let Some(Atom(atom)) = values.first() else {
-            return Err(EvalError {
+            return Err(RuntimeError {
                 msg: "Incorrect arguments to deref".to_string(),
             });
         };
 
         let Some(val) = values.get(1) else {
-            return Err(EvalError {
+            return Err(RuntimeError {
                 msg: "Incorrect arguments to deref".to_string(),
             });
         };
@@ -450,13 +451,13 @@ const SWAP_ATOM: CoreFunction = CoreFunction {
     id: "swap!",
     func: |values: &[DataType]| {
         let Some(Atom(atom_value)) = values.first() else {
-            return Err(EvalError {
+            return Err(RuntimeError {
                 msg: "Incorrect arguments to deref".to_string(),
             });
         };
 
         let Some(Closure(func)) = values.get(1) else {
-            return Err(EvalError {
+            return Err(RuntimeError {
                 msg: "Incorrect arguments to deref".to_string(),
             });
         };
@@ -477,13 +478,13 @@ const CONS: CoreFunction = CoreFunction {
     id: "cons",
     func: |values: &[DataType]| {
         let Some(value) = values.first() else {
-            return Err(EvalError {
+            return Err(RuntimeError {
                 msg: "Incorrect arguments to deref".to_string(),
             });
         };
 
         let Some(DataType::List(list) | DataType::Vector(list)) = values.get(1) else {
-            return Err(EvalError {
+            return Err(RuntimeError {
                 msg: "Incorrect arguments to deref".to_string(),
             });
         };
@@ -502,7 +503,7 @@ const CONCAT: CoreFunction = CoreFunction {
         let mut result = vec![];
         for list in values {
             let (DataType::List(list) | DataType::Vector(list)) = list else {
-                return Err(EvalError {
+                return Err(RuntimeError {
                     msg: "Incorrect arguments to concat".to_string(),
                 });
             };
@@ -521,7 +522,7 @@ const NTH: CoreFunction = CoreFunction {
     func: |values: &[DataType]| {
         let (Some(List(list) | Vector(list)), Some(Integer(idx))) = (values.get(0), values.get(1))
         else {
-            return Err(EvalError {
+            return Err(RuntimeError {
                 msg: "Wrong arguments for nth".to_string(),
             });
         };
@@ -529,7 +530,7 @@ const NTH: CoreFunction = CoreFunction {
         match list.get(*idx as usize) {
             Some(v) => Ok(v.clone()),
             None => {
-                return Err(EvalError {
+                return Err(RuntimeError {
                     msg: "Index out of bounds".to_string(),
                 });
             }
@@ -541,7 +542,7 @@ const FIRST: CoreFunction = CoreFunction {
     id: "first",
     func: |values: &[DataType]| {
         let Some(List(list) | Vector(list)) = values.get(0) else {
-            return Err(EvalError {
+            return Err(RuntimeError {
                 msg: "Wrong arguments for nth".to_string(),
             });
         };
@@ -549,7 +550,7 @@ const FIRST: CoreFunction = CoreFunction {
         match list.first() {
             Some(v) => Ok(v.clone()),
             None => {
-                return Err(EvalError {
+                return Err(RuntimeError {
                     msg: "Index out of bounds".to_string(),
                 });
             }
@@ -561,11 +562,26 @@ const REST: CoreFunction = CoreFunction {
     id: "rest",
     func: |values: &[DataType]| {
         let Some(List(list) | Vector(list)) = values.get(0) else {
-            return Err(EvalError {
+            return Err(RuntimeError {
                 msg: "Wrong arguments for nth".to_string(),
             });
         };
 
         return Ok(DataType::List(list[1..].iter().cloned().collect()));
+    },
+};
+
+const THROW: CoreFunction = CoreFunction {
+    id: "throw",
+    func: |values: &[DataType]| {
+        let Some(String(string)) = values.get(0) else {
+            return Err(RuntimeError {
+                msg: "Wrong arguments for throw".to_string(),
+            });
+        };
+
+        return Err(RuntimeError {
+            msg: string.to_string(),
+        });
     },
 };
