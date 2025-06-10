@@ -306,7 +306,7 @@ fn prepare_tail_call_do<'a>(
     repl_env: Rc<RefCell<Environment>>,
 ) -> Result<&'a DataType, EvalError> {
     for child in &args[..args.len() - 1] {
-        let _ = eval(child, env.clone(), repl_env.clone());
+        eval(child, env.clone(), repl_env.clone())?;
     }
     if let Some(final_child) = args.last() {
         Ok(final_child)

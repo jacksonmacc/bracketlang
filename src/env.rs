@@ -49,7 +49,8 @@ pub fn create_repl_env() -> Rc<RefCell<Environment>> {
         DEREF,
         RESET_ATOM,
         SWAP_ATOM,
-        CONS
+        CONS,
+        CONCAT
     );
 
     Rc::new(RefCell::new(repl_env))
@@ -478,7 +479,7 @@ const CONS: CoreFunction = CoreFunction {
             });
         };
 
-        let Some(List(list)) = values.get(1) else {
+        let Some(DataType::List(list) | DataType::Vector(list)) = values.get(1) else {
             return Err(EvalError {
                 msg: "Incorrect arguments to deref".to_string(),
             });
@@ -489,5 +490,25 @@ const CONS: CoreFunction = CoreFunction {
         new_list.extend(list.iter().cloned());
 
         Ok(DataType::List(new_list))
+    },
+};
+
+const CONCAT: CoreFunction = CoreFunction {
+    id: "concat",
+    func: |values: &[DataType]| {
+        let mut result = vec![];
+        for list in values {
+            let (DataType::List(list) | DataType::Vector(list)) = list else {
+                return Err(EvalError {
+                    msg: "Incorrect arguments to concat".to_string(),
+                });
+            };
+
+            for value in list {
+                result.push(value.clone());
+            }
+        }
+
+        Ok(DataType::List(result))
     },
 };

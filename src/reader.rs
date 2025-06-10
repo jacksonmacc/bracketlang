@@ -144,6 +144,22 @@ impl Reader {
                     DataType::Symbol(DEREF.id.to_string()),
                     self.read_atom()?,
                 ])),
+                "'" => Ok(DataType::List(vec![
+                    DataType::Symbol("quote".to_string()),
+                    self.read()?,
+                ])),
+                "`" => Ok(DataType::List(vec![
+                    DataType::Symbol("quasiquote".to_string()),
+                    self.read()?,
+                ])),
+                "~" => Ok(DataType::List(vec![
+                    DataType::Symbol("unquote".to_string()),
+                    self.read()?,
+                ])),
+                "~@" => Ok(DataType::List(vec![
+                    DataType::Symbol("splice-unquote".to_string()),
+                    self.read()?,
+                ])),
                 _ if first_char == '"' => {
                     let converted = token
                         .replace("\\n", "\n")

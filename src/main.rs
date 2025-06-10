@@ -96,7 +96,7 @@ fn main() {
             .set("*ARGV*".to_string(), DataType::List(repl_args));
         match rep(format!("(load-file \"{}\")", filename), repl_env.clone()) {
             Some(res) => {
-                println!("{}", res);
+                println!("Error: {}", res);
                 return;
             }
             None => return,
