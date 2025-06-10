@@ -38,7 +38,7 @@ fn rep(input: String, repl_env: Rc<RefCell<Environment>>) -> Option<String> {
         Ok(r) => r,
         Err(e) => return Some(e.msg),
     };
-    
+
     if let DataType::Nil() = eval_result {
         None
     } else {
@@ -47,17 +47,58 @@ fn rep(input: String, repl_env: Rc<RefCell<Environment>>) -> Option<String> {
     }
 }
 
+fn re(input: String, repl_env: Rc<RefCell<Environment>>) -> Result<DataType, String> {
+    let ast = match read(input) {
+        Ok(r) => r,
+        Err(e) => return Err(e.msg),
+    };
+
+    let result = match eval(&ast, repl_env.clone(), repl_env.clone()) {
+        Ok(r) => r,
+        Err(e) => return Err(e.msg),
+    };
+
+    Ok(result)
+}
+
 fn main() {
     let repl_env = create_repl_env();
-    rep(
+    match re(
         "(def! not (fn* (a) (if a false true)))".to_string(),
         repl_env.clone(),
-    );
-    rep(
+    ) {
+        Err(e) => {
+            println!("Error in core function definition! {}", e);
+            return;
+        }
+        _ => (),
+    };
+    match re(
         "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\\nnil)\")))))"
             .to_string(),
         repl_env.clone(),
-    );
+    ) {
+        Err(e) => {
+            println!("Error in core function definition! {}", e);
+            return;
+        }
+        _ => (),
+    };
+
+    let args: Vec<String> = std::env::args().collect();
+    if let Some(filename) = args.get(1) {
+        match rep(format!("(load-file \"{}\")", filename), repl_env.clone()) {
+            Some(res) => {
+                println!("{}", res);
+                return;
+            }
+            None => return,
+        }
+    }
+
+    if args.len() > 2 {
+        println!("Usage: bracketlang FILE");
+    }
 
     loop {
         print!("user> ");
