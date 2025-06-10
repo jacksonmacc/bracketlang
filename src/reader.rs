@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use regex::Regex;
 
-use crate::variable_type::DataType;
+use crate::{env::DEREF, variable_type::DataType};
 
 /*
 [\s,]* get rid of whitespaces and commas
@@ -140,6 +140,10 @@ impl Reader {
                 "false" => Ok(DataType::Bool(false)),
                 "true" => Ok(DataType::Bool(true)),
                 "nil" => Ok(DataType::Nil()),
+                "@" => Ok(DataType::List(vec![
+                    DataType::Symbol(DEREF.id.to_string()),
+                    self.read_atom()?,
+                ])),
                 _ if first_char == '"' => {
                     let converted = token
                         .replace("\\n", "\n")

@@ -7,7 +7,7 @@ use crate::read;
 use crate::variable_type::DataType;
 use crate::variable_type::DataType::*;
 
-struct CoreFunction {
+pub struct CoreFunction {
     pub id: &'static str,
     pub func: fn(&[DataType]) -> Result<DataType, EvalError>,
 }
@@ -33,7 +33,7 @@ pub fn create_repl_env() -> Rc<RefCell<Environment>> {
         MULTIPLICATION,
         PRINT,
         LIST,
-        LIST_CHECK,
+        CHECK_LIST,
         LIST_EMPTY,
         LIST_LEN,
         EQUALS,
@@ -43,7 +43,12 @@ pub fn create_repl_env() -> Rc<RefCell<Environment>> {
         GREATER_THAN_OR_EQUALS,
         READ_STR,
         SLURP,
-        STR
+        STR,
+        ATOM,
+        CHECK_ATOM,
+        DEREF,
+        RESET_ATOM,
+        SWAP_ATOM
     );
 
     Rc::new(RefCell::new(repl_env))
@@ -161,7 +166,7 @@ const LIST: CoreFunction = CoreFunction {
     },
 };
 
-const LIST_CHECK: CoreFunction = CoreFunction {
+const CHECK_LIST: CoreFunction = CoreFunction {
     id: "list?",
     func: |values: &[DataType]| match values.first() {
         Some(DataType::List(_)) => Ok(DataType::Bool(true)),
@@ -369,5 +374,96 @@ const STR: CoreFunction = CoreFunction {
         }
 
         Ok(DataType::String(end_str))
+    },
+};
+
+const ATOM: CoreFunction = CoreFunction {
+    id: "atom",
+    func: |values: &[DataType]| {
+        let Some(val) = values.first() else {
+            return Err(EvalError {
+                msg: "Not enough arguments to atom".to_string(),
+            });
+        };
+
+        Ok(DataType::Atom(Rc::new(RefCell::new(val.clone()))))
+    },
+};
+
+const CHECK_ATOM: CoreFunction = CoreFunction {
+    id: "atom?",
+    func: |values: &[DataType]| {
+        let Some(_) = values.first() else {
+            return Err(EvalError {
+                msg: "Not enough arguments to atom?".to_string(),
+            });
+        };
+
+        if let Some(Atom(_)) = values.first() {
+            Ok(Bool(true))
+        } else {
+            Ok(Bool(false))
+        }
+    },
+};
+
+pub const DEREF: CoreFunction = CoreFunction {
+    id: "deref",
+    func: |values: &[DataType]| {
+        let Some(Atom(atom)) = values.first() else {
+            return Err(EvalError {
+                msg: "Incorrect arguments to deref".to_string(),
+            });
+        };
+
+        Ok((**atom).borrow().clone())
+    },
+};
+
+const RESET_ATOM: CoreFunction = CoreFunction {
+    id: "reset!",
+    func: |values: &[DataType]| {
+        let Some(Atom(atom)) = values.first() else {
+            return Err(EvalError {
+                msg: "Incorrect arguments to deref".to_string(),
+            });
+        };
+
+        let Some(val) = values.get(1) else {
+            return Err(EvalError {
+                msg: "Incorrect arguments to deref".to_string(),
+            });
+        };
+
+        atom.replace(val.clone());
+
+        Ok(val.clone())
+    },
+};
+
+const SWAP_ATOM: CoreFunction = CoreFunction {
+    id: "swap!",
+    func: |values: &[DataType]| {
+        let Some(Atom(atom_value)) = values.first() else {
+            return Err(EvalError {
+                msg: "Incorrect arguments to deref".to_string(),
+            });
+        };
+
+        let Some(Closure(func)) = values.get(1) else {
+            return Err(EvalError {
+                msg: "Incorrect arguments to deref".to_string(),
+            });
+        };
+
+        let mut args: Vec<DataType> = vec![];
+        args.push(atom_value.borrow().clone());
+        for value in &values[2..] {
+            args.push(value.clone());
+        }
+
+        atom_value.replace(func.func(&args[0..])?);
+
+        Ok(atom_value.borrow().clone())
     },
 };

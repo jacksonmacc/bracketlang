@@ -7,6 +7,7 @@ pub struct Closure {
     pub ast: Box<DataType>,
     pub params: Vec<String>,
     pub env: Rc<RefCell<Environment>>,
+    pub repl_env: Rc<RefCell<Environment>>,
 }
 
 #[derive(Clone)]
@@ -23,6 +24,7 @@ pub enum DataType {
     Dictionary(HashMap<String, DataType>),
     Closure(Closure),
     NativeFunction((i8, &'static fn(&[DataType]) -> Result<DataType, EvalError>)),
+    Atom(Rc<RefCell<DataType>>),
 }
 
 impl PartialEq for DataType {
@@ -38,6 +40,7 @@ impl PartialEq for DataType {
             (Self::Dictionary(l0), Self::Dictionary(r0)) => l0 == r0,
             (Self::Closure(l0), Self::Closure(r0)) => addr_of!(l0) == addr_of!(r0),
             (Self::NativeFunction(l0), Self::NativeFunction(r0)) => r0.0 == l0.0,
+            (Self::Atom(l0), Self::Atom(r0)) => l0 == r0,
             _ => false,
         }
     }
@@ -79,8 +82,9 @@ impl std::fmt::Debug for DataType {
             DataType::Float(float) => write!(f, "{}", float),
             DataType::Integer(num) => write!(f, "{}", num),
             DataType::String(str) => write!(f, "\"{}\"", str),
-            DataType::Closure(func) => write!(f, "CL{:p}", func),
+            DataType::Closure(func) => write!(f, "Closure({:p})", func),
             DataType::NativeFunction(func) => write!(f, "Fn{}", func.0),
+            DataType::Atom(atom) => write!(f, "Atom({:p})", *atom),
         }
     }
 }

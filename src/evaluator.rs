@@ -67,7 +67,11 @@ pub fn eval<'a>(
                     }
 
                     Some(DataType::Symbol(val)) if *val == "do".to_string() => {
-                        match prepare_tail_call_do(&children[1..], current_env.clone(), repl_env.clone()) {
+                        match prepare_tail_call_do(
+                            &children[1..],
+                            current_env.clone(),
+                            repl_env.clone(),
+                        ) {
                             Ok(new_ast) => {
                                 ast = Box::new(new_ast.clone());
                                 continue;
@@ -77,7 +81,11 @@ pub fn eval<'a>(
                     }
 
                     Some(DataType::Symbol(val)) if *val == "if".to_string() => {
-                        match prepare_tail_call_if(&children[1..], current_env.clone(), repl_env.clone()) {
+                        match prepare_tail_call_if(
+                            &children[1..],
+                            current_env.clone(),
+                            repl_env.clone(),
+                        ) {
                             Ok(new_ast) => {
                                 ast = Box::new(new_ast.clone());
                                 continue;
@@ -87,7 +95,7 @@ pub fn eval<'a>(
                     }
 
                     Some(DataType::Symbol(val)) if *val == "fn*".to_string() => {
-                        return eval_closure(&children[1..], current_env.clone());
+                        return eval_closure(&children[1..], current_env.clone(), repl_env.clone());
                     }
 
                     Some(DataType::Symbol(val)) if *val == "eval".to_string() => {
@@ -138,10 +146,12 @@ pub fn eval<'a>(
             DataType::Dictionary(dict) => {
                 let evaluated: HashMap<String, DataType> = dict
                     .iter()
-                    .map(|child| match eval(child.1, current_env.clone(), repl_env.clone()) {
-                        Ok(result) => Ok((child.0.clone(), result)),
-                        Err(err) => Err(err),
-                    })
+                    .map(
+                        |child| match eval(child.1, current_env.clone(), repl_env.clone()) {
+                            Ok(result) => Ok((child.0.clone(), result)),
+                            Err(err) => Err(err),
+                        },
+                    )
                     .collect::<Result<HashMap<String, DataType>, EvalError>>()?;
 
                 return Ok(DataType::Dictionary(evaluated));
@@ -162,7 +172,11 @@ pub fn eval<'a>(
     }
 }
 
-fn eval_def(args: &[DataType], env: Rc<RefCell<Environment>>, repl_env: Rc<RefCell<Environment>>) -> Result<DataType, EvalError> {
+fn eval_def(
+    args: &[DataType],
+    env: Rc<RefCell<Environment>>,
+    repl_env: Rc<RefCell<Environment>>,
+) -> Result<DataType, EvalError> {
     if let (Some(DataType::Symbol(sym)), Some(val)) = (args.get(0), args.get(1)) {
         let evaluated_val = eval(val, env.clone(), repl_env)?;
         env.borrow_mut().set(sym.to_owned(), evaluated_val.clone());
@@ -264,7 +278,11 @@ fn prepare_tail_call_if<'a>(
     }
 }
 
-fn eval_closure(args: &[DataType], env: Rc<RefCell<Environment>>) -> Result<DataType, EvalError> {
+fn eval_closure(
+    args: &[DataType],
+    env: Rc<RefCell<Environment>>,
+    repl_env: Rc<RefCell<Environment>>,
+) -> Result<DataType, EvalError> {
     if let Some(DataType::List(params)) = args.get(0) {
         let param_names = params
             .iter()
@@ -294,6 +312,7 @@ fn eval_closure(args: &[DataType], env: Rc<RefCell<Environment>>) -> Result<Data
             ast: Box::new(closure_body_ref.clone()),
             params: param_names,
             env: closure_env.clone(),
+            repl_env: repl_env.clone(),
         }));
     } else {
         return Err(EvalError {
@@ -303,10 +322,10 @@ fn eval_closure(args: &[DataType], env: Rc<RefCell<Environment>>) -> Result<Data
 }
 
 impl Closure {
-    pub fn func(&self, args: &[DataType], repl_env: &Rc<RefCell<Environment>>) -> Result<DataType, EvalError> {
+    pub fn func(&self, args: &[DataType]) -> Result<DataType, EvalError> {
         let (ast, environment) = self.prepare_tail_call(args)?;
 
-        eval(ast, environment, repl_env.clone())
+        eval(ast, environment, self.repl_env.clone())
     }
 
     pub fn prepare_tail_call(

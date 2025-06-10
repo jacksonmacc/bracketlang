@@ -345,3 +345,34 @@ fn test_simple_load_file() {
         assert!(false);
     }
 }
+
+#[test]
+fn test_create_atom() {
+    let env = create_repl_env();
+    let result = run_line("(def! x (atom 3))", env.clone());
+
+    let DataType::Atom(_) = result else {
+        panic!();
+    };
+
+    let result = run_line("(deref x)", env.clone());
+    if let DataType::Integer(int) = result {
+        assert_eq!(int, 3);
+    } else {
+        panic!();
+    }
+}
+
+#[test]
+fn test_reset_atom() {
+    let env = create_repl_env();
+    let _ = run_line("(def! x (atom 3))", env.clone());
+    let _ = run_line("(reset! x 4)", env.clone());
+
+    let result = run_line("(deref x)", env.clone());
+    if let DataType::Integer(int) = result {
+        assert_eq!(int, 4);
+    } else {
+        panic!();
+    }
+}
