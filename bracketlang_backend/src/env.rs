@@ -5,7 +5,12 @@ use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::evaluator::RuntimeError;
+
+#[cfg(not(target_arch = "wasm32"))]
 use crate::read;
+#[cfg(target_arch = "wasm32")]
+use crate::{js_print, read};
+
 use crate::variable_type::DataType;
 use crate::variable_type::DataType::*;
 
@@ -111,6 +116,7 @@ pub const DIVISION: CoreFunction = CoreFunction {
     },
 };
 
+#[cfg(not(target_arch = "wasm32"))]
 pub const PRINT: CoreFunction = CoreFunction {
     id: "prn",
     func: |values: &[DataType]| {
@@ -122,6 +128,23 @@ pub const PRINT: CoreFunction = CoreFunction {
                 .collect::<Vec<_>>()
                 .join(" ")
         );
+
+        Ok(DataType::Nil())
+    },
+};
+
+#[cfg(target_arch = "wasm32")]
+pub const PRINT: CoreFunction = CoreFunction {
+    id: "prn",
+    func: |values: &[DataType]| {
+        js_print(&format!(
+            "{}",
+            values
+                .iter()
+                .map(|value| format!("{:?}", value))
+                .collect::<Vec<_>>()
+                .join(" ")
+        ));
 
         Ok(DataType::Nil())
     },

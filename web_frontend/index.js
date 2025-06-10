@@ -5,9 +5,8 @@ init().then(() => {
     let inputButton = document.getElementById("bl-button");
     let inputField = document.getElementById("bl-input");
 
-    console.log(inputButton)
-
     inputButton.addEventListener("click", (event) => {
-        console.log(evaluate_string(inputField.value, env));
+        evaluate_string(inputField.value, env);
+        inputField.value = "";
     })
 })

@@ -46,6 +46,11 @@ impl EnvironmentHolder {
     }
 }
 
+#[wasm_bindgen(module = "/helper_functions.js")]
+extern "C" {
+    pub fn js_print(string: &str);
+}
+
 #[wasm_bindgen]
 pub fn create_default_env() -> EnvironmentHolder {
     let repl_env = create_default_repl_env();
@@ -64,8 +69,11 @@ pub fn create_default_env() -> EnvironmentHolder {
 }
 
 #[wasm_bindgen]
-pub fn evaluate_string(input: &str, env: &mut EnvironmentHolder) -> Option<String> {
-    rep(input.to_string(), env.get())
+pub fn evaluate_string(input: &str, env: &mut EnvironmentHolder) {
+    match rep(input.to_string(), env.get()) {
+        Some(v) => js_print(&v),
+        None => {}
+    }
 }
 
 pub fn rep(input: String, repl_env: Rc<RefCell<Environment>>) -> Option<String> {
