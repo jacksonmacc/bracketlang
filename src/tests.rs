@@ -474,3 +474,19 @@ fn test_splice_unquote() {
         panic!();
     }
 }
+
+#[test]
+fn test_macros() {
+    let env = create_repl_env();
+    let _ = run_line(
+        "(defmacro! unless (fn* (pred a b) `(if ~pred ~b ~a)))",
+        env.clone(),
+    );
+    let result = run_line("(unless false 7 8)", env.clone());
+
+    if let DataType::Integer(i) = result {
+        assert_eq!(i, 7);
+    } else {
+        panic!();
+    }
+}
