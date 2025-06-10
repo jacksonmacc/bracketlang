@@ -55,6 +55,10 @@ pub fn eval<'a>(
                         return eval_def(&children[1..], current_env.clone(), repl_env.clone());
                     }
 
+                    Some(DataType::Symbol(val)) if *val == "quote".to_string() => {
+                        return eval_quote(&children[1..]);
+                    }
+
                     Some(DataType::Symbol(val)) if *val == "let*".to_string() => {
                         match prepare_tail_call_let(&children[1..], current_env) {
                             Ok((new_ast, new_env)) => {
@@ -130,7 +134,7 @@ pub fn eval<'a>(
                         return Ok(function.1(&evaluated[1..])?);
                     }
 
-                    None | Some(_) => return Ok(DataType::List(evaluated)),
+                    None | Some(_) => return Err(EvalError { msg: format!("Cannot call list as function!") }),
                 };
             }
 
@@ -185,6 +189,18 @@ fn eval_def(
     } else {
         return Err(EvalError {
             msg: "Incorrect usage of def!".to_string(),
+        });
+    }
+}
+
+fn eval_quote(
+    args: &[DataType],
+) -> Result<DataType, EvalError> {
+    if let Some(val) = args.get(0) {
+        return Ok(val.clone());
+    } else {
+        return Err(EvalError {
+            msg: "Incorrect usage of quote".to_string(),
         });
     }
 }
