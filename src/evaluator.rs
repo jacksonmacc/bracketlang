@@ -59,6 +59,14 @@ pub fn eval<'a>(
                         return eval_quote(&children[1..]);
                     }
 
+                    Some(DataType::Symbol(val)) if *val == "quasiquote".to_string() => {
+                        return eval_quasiquote(
+                            &children[1..],
+                            current_env.clone(),
+                            repl_env.clone(),
+                        );
+                    }
+
                     Some(DataType::Symbol(val)) if *val == "let*".to_string() => {
                         match prepare_tail_call_let(&children[1..], current_env) {
                             Ok((new_ast, new_env)) => {
@@ -134,7 +142,11 @@ pub fn eval<'a>(
                         return Ok(function.1(&evaluated[1..])?);
                     }
 
-                    None | Some(_) => return Err(EvalError { msg: format!("Cannot call list as function!") }),
+                    None | Some(_) => {
+                        return Err(EvalError {
+                            msg: format!("Cannot call list as function!"),
+                        });
+                    }
                 };
             }
 
@@ -193,11 +205,52 @@ fn eval_def(
     }
 }
 
-fn eval_quote(
-    args: &[DataType],
-) -> Result<DataType, EvalError> {
+fn eval_quote(args: &[DataType]) -> Result<DataType, EvalError> {
     if let Some(val) = args.get(0) {
         return Ok(val.clone());
+    } else {
+        return Err(EvalError {
+            msg: "Incorrect usage of quote".to_string(),
+        });
+    }
+}
+
+fn eval_quasiquote(
+    args: &[DataType],
+    env: Rc<RefCell<Environment>>,
+    repl_env: Rc<RefCell<Environment>>,
+) -> Result<DataType, EvalError> {
+    if let Some(DataType::List(list)) = args.get(0) {
+        let mut result = vec![];
+        for value in list {
+            if let DataType::List(inner_values) = value {
+                match (inner_values.get(0), inner_values.get(1)) {
+                    (Some(DataType::Symbol(check)), Some(inner_value)) if check == "unquote" => {
+                        result.push(eval(inner_value, env.clone(), repl_env.clone())?);
+                    }
+                    (Some(DataType::Symbol(check)), Some(inner_values))
+                        if check == "splice-unquote" =>
+                    {
+                        let Ok(DataType::List(inner_values)) =
+                            eval(inner_values, env.clone(), repl_env.clone())
+                        else {
+                            return Err(EvalError {
+                                msg: "List not given to splice-unquote".to_string(),
+                            });
+                        };
+                        for inner_value in inner_values {
+                            result.push(inner_value);
+                        }
+                    }
+                    _ => {
+                        result.push(value.clone());
+                    }
+                }
+            } else {
+                result.push(value.clone());
+            }
+        }
+        Ok(DataType::List(result))
     } else {
         return Err(EvalError {
             msg: "Incorrect usage of quote".to_string(),

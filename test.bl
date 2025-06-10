@@ -1,3 +1,4 @@
-(def! inc4 (fn* (a) (+ 4 a)))
-
-(prn *ARGV*)
+(prn (def! lst (quote (b c))))
+(prn (quasiquote (a lst d)))
+(prn (quasiquote (a (unquote lst) d)))
+(prn (quasiquote (a (splice-unquote lst) d)))
