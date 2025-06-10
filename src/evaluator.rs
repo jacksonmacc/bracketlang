@@ -54,6 +54,13 @@ pub fn eval<'a>(
                     Some(DataType::Symbol(val)) if *val == "def!".to_string() => {
                         return eval_def(&children[1..], current_env.clone(), repl_env.clone());
                     }
+                    Some(DataType::Symbol(val)) if *val == "defmacro!".to_string() => {
+                        return eval_defmacro(
+                            &children[1..],
+                            current_env.clone(),
+                            repl_env.clone(),
+                        );
+                    }
 
                     Some(DataType::Symbol(val)) if *val == "quote".to_string() => {
                         return eval_quote(&children[1..]);
@@ -122,8 +129,29 @@ pub fn eval<'a>(
                         continue;
                     }
 
+                    Some(DataType::Closure(function)) if function.is_macro => {
+                        println!("HELLO");
+                        let new_ast = function.func(&children[1..])?;
+                        ast = Box::new(new_ast.clone());
+                        println!("{:?}", new_ast);
+                        continue;
+                    }
+
                     _ => {}
                 };
+
+                if let Some(first) = children.first() {
+                    let first_evaluated = eval(first, current_env.clone(), repl_env.clone());
+
+                    match first_evaluated {
+                        Ok(DataType::Closure(function)) if function.is_macro => {
+                            let new_ast = function.func(&children[1..])?;
+                            ast = Box::new(new_ast.clone());
+                            continue;
+                        }
+                        _ => {}
+                    }
+                }
 
                 let evaluated: Vec<DataType> = children
                     .iter()
@@ -198,6 +226,33 @@ fn eval_def(
         env.borrow_mut().set(sym.to_owned(), evaluated_val.clone());
 
         return Ok(evaluated_val);
+    } else {
+        return Err(EvalError {
+            msg: "Incorrect usage of def!".to_string(),
+        });
+    }
+}
+
+fn eval_defmacro(
+    args: &[DataType],
+    env: Rc<RefCell<Environment>>,
+    repl_env: Rc<RefCell<Environment>>,
+) -> Result<DataType, EvalError> {
+    if let (Some(DataType::Symbol(sym)), Some(val)) = (args.get(0), args.get(1)) {
+        if let DataType::Closure(cl) = eval(&val, env.clone(), repl_env.clone())? {
+            let val = DataType::Closure(Closure {
+                is_macro: true,
+                ..cl.clone()
+            });
+
+            env.borrow_mut().set(sym.to_owned(), val.clone());
+
+            return Ok(val);
+        } else {
+            return Err(EvalError {
+                msg: "Expected closure for macro".to_string(),
+            });
+        }
     } else {
         return Err(EvalError {
             msg: "Incorrect usage of def!".to_string(),
@@ -382,6 +437,7 @@ fn eval_closure(
             params: param_names,
             env: closure_env.clone(),
             repl_env: repl_env.clone(),
+            is_macro: false,
         }));
     } else {
         return Err(EvalError {

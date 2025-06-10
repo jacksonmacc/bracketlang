@@ -1,0 +1,2 @@
+(defmacro! unless (fn* (pred a b) `(if ~pred ~b ~a)))
+(prn (unless false 7 8))

@@ -8,6 +8,7 @@ pub struct Closure {
     pub params: Vec<String>,
     pub env: Rc<RefCell<Environment>>,
     pub repl_env: Rc<RefCell<Environment>>,
+    pub is_macro: bool,
 }
 
 #[derive(Clone)]
