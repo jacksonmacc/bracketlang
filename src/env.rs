@@ -54,12 +54,29 @@ pub fn create_repl_env() -> Rc<RefCell<Environment>> {
         NTH,
         FIRST,
         REST,
-        THROW
+        THROW,
+        APPLY,
+        MAP,
+        CHECK_NIL,
+        CHECK_TRUE,
+        CHECK_FALSE,
+        CHECK_SYMBOL
     );
 
     Rc::new(RefCell::new(repl_env))
 }
 
+macro_rules! type_check {
+    ($a:pat) => {
+        |values: &[DataType]| match values.first() {
+            Some($a) => Ok(DataType::Bool(true)),
+            None => Err(RuntimeError {
+                msg: "No arguments given to data type check".to_string(),
+            }),
+            _ => Ok(DataType::Bool(false)),
+        }
+    };
+}
 const ADDITION: CoreFunction = CoreFunction {
     id: "+",
     func: |values: &[DataType]| {
@@ -174,13 +191,7 @@ const LIST: CoreFunction = CoreFunction {
 
 const CHECK_LIST: CoreFunction = CoreFunction {
     id: "list?",
-    func: |values: &[DataType]| match values.first() {
-        Some(DataType::List(_)) => Ok(DataType::Bool(true)),
-        None => Err(RuntimeError {
-            msg: "No arguments given to list?".to_string(),
-        }),
-        _ => Ok(DataType::Bool(false)),
-    },
+    func: type_check!(DataType::List(_)),
 };
 
 const LIST_EMPTY: CoreFunction = CoreFunction {
@@ -398,19 +409,7 @@ const ATOM: CoreFunction = CoreFunction {
 
 const CHECK_ATOM: CoreFunction = CoreFunction {
     id: "atom?",
-    func: |values: &[DataType]| {
-        let Some(_) = values.first() else {
-            return Err(RuntimeError {
-                msg: "Not enough arguments to atom?".to_string(),
-            });
-        };
-
-        if let Some(Atom(_)) = values.first() {
-            Ok(Bool(true))
-        } else {
-            Ok(Bool(false))
-        }
-    },
+    func: type_check!(DataType::Atom(_)),
 };
 
 pub const DEREF: CoreFunction = CoreFunction {
@@ -584,4 +583,88 @@ const THROW: CoreFunction = CoreFunction {
             msg: string.to_string(),
         });
     },
+};
+
+const APPLY: CoreFunction = CoreFunction {
+    id: "apply",
+    func: |values: &[DataType]| {
+        if let Some(Closure(closure)) = values.get(0) {
+            let mut args = vec![];
+            for val in &values[1..] {
+                match val {
+                    List(data_types) | Vector(data_types) => {
+                        for val in data_types {
+                            args.push(val.clone());
+                        }
+                    }
+                    _ => args.push(val.clone()),
+                }
+            }
+            closure.func(&args)
+        } else if let Some(NativeFunction(func)) = values.get(0) {
+            let mut args = vec![];
+            for val in &values[1..] {
+                match val {
+                    List(data_types) | Vector(data_types) => {
+                        for val in data_types {
+                            args.push(val.clone());
+                        }
+                    }
+                    _ => args.push(val.clone()),
+                }
+            }
+            func.1(&args)
+        } else {
+            return Err(RuntimeError {
+                msg: "Wrong arguments for apply".to_string(),
+            });
+        }
+    },
+};
+
+const MAP: CoreFunction = CoreFunction {
+    id: "map",
+    func: |values: &[DataType]| {
+        if let (Some(Closure(closure)), Some(List(list) | Vector(list))) =
+            (values.get(0), values.get(0))
+        {
+            let mut result = vec![];
+            for val in list {
+                result.push(closure.func(&[val.clone()])?);
+            }
+            Ok(DataType::List(result))
+        } else if let (Some(NativeFunction(closure)), Some(List(list) | Vector(list))) =
+            (values.get(0), values.get(0))
+        {
+            let mut result = vec![];
+            for val in list {
+                result.push(closure.1(&[val.clone()])?);
+            }
+            Ok(DataType::List(result))
+        } else {
+            return Err(RuntimeError {
+                msg: "Wrong arguments for apply".to_string(),
+            });
+        }
+    },
+};
+
+const CHECK_NIL: CoreFunction = CoreFunction {
+    id: "nil?",
+    func: type_check!(DataType::Nil()),
+};
+
+const CHECK_TRUE: CoreFunction = CoreFunction {
+    id: "true?",
+    func: type_check!(DataType::Bool(true)),
+};
+
+const CHECK_FALSE: CoreFunction = CoreFunction {
+    id: "false?",
+    func: type_check!(DataType::Bool(false)),
+};
+
+const CHECK_SYMBOL: CoreFunction = CoreFunction {
+    id: "symbol?",
+    func: type_check!(DataType::Symbol(_)),
 };
