@@ -7,10 +7,10 @@ use crate::evaluator::RuntimeError;
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::read;
-#[cfg(not(target_arch = "wasm32"))]
-use std::time::{SystemTime, UNIX_EPOCH};
 #[cfg(target_arch = "wasm32")]
 use crate::{js_print, prompt, read};
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::variable_type::DataType;
 use crate::variable_type::DataType::*;
@@ -144,7 +144,10 @@ pub const PRINT: CoreFunction = CoreFunction {
             "{}",
             values
                 .iter()
-                .map(|value| format!("{:?}", value))
+                .map(|value| match value {
+                    DataType::String(string) => format!("{}", string),
+                    _ => format!("{:?}", value),
+                })
                 .collect::<Vec<_>>()
                 .join(" ")
         );
@@ -161,7 +164,10 @@ pub const PRINT: CoreFunction = CoreFunction {
             "{}",
             values
                 .iter()
-                .map(|value| format!("{:?}", value))
+                .map(|value| match value {
+                    DataType::String(string) => format!("{}", string),
+                    _ => format!("{:?}", value),
+                })
                 .collect::<Vec<_>>()
                 .join(" ")
         ));

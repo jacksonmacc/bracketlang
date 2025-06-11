@@ -103,7 +103,6 @@ pub fn eval<'a>(
                     }
 
                     Some(DataType::Closure(function)) if function.is_macro => {
-                        println!("HELLO");
                         let new_ast = function.func(&children[1..])?;
                         ast = Box::new(new_ast.clone());
                         println!("{:?}", new_ast);

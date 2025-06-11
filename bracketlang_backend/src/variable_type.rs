@@ -32,6 +32,10 @@ impl Environment {
             }
         }
     }
+
+    pub fn get_outer(&self) -> Option<Rc<RefCell<Self>>> {
+        self.outer.clone()
+    }
 }
 
 #[derive(Clone)]

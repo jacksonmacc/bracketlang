@@ -28,7 +28,7 @@
         <h2>How To Use</h2>
         <h3>Basic Syntax</h3>
         <p>
-            Lisp follows a basic syntax of (FUNCTION ARGUMENTS). For instance, if you wanted to add 2 and 3,
+            Lisp follows a basic syntax of (FUNCTION ARGUMENTS). For instance, if you wanted to add 3 and 5,
             you could write <code>(+ 3 5)</code>.
         </p>
         <p>
@@ -42,6 +42,7 @@
         </p>
         <p>
             For control flow, there is an if statment with the syntax <code>(if CONDITION TRUE_PATH FALSE_PATH)</code>.
+            <code>false</code> and <code>nil</code> are false, everything else is true.
         </p>
         <p class="codeblock">
             => (if true "hello" "world")<br>
@@ -58,10 +59,20 @@
             => (addone 3)<br>
             4<br>
         </p>
+        <p>
+            You can also create variadic arguments using <code>&</code>:
+        </p>
+        <p class="codeblock">
+            => (def! test (fn* (& x) (cons "hello" x)))<br>
+            Closure(0x?????)<br>
+            => (test 3 2 3)<br>
+            ("hello" 3 2 3)<br>
+        </p>
         <p>For creating loops... don't. Use recursion instead.</p>
         <h3>Data Types</h3>
         <ul>
-            <li>List: A list of other data types, expects the first element to be a function if evaluating directly.</li>
+            <li>List: A list of other data types, expects the first element to be a function if evaluating directly.
+            </li>
             <li>String</li>
             <li>Integer</li>
             <li>Float</li>
@@ -72,6 +83,79 @@
             <li>Atom: Allows references and mutability (<code>(atom 3)</code>)</li>
             <li>Closure</li>
         </ul>
+        <h3>Useful Functions</h3>
+        <p>
+            Add, subtract, multiply, divide, gt, lt, gte, lte, equals all work as expected.
+            Other than those basics, there is also:
+        </p>
+        <ul>
+            <li><code>(time-ms)</code>: Get the current time in milliseconds</li>
+            <li><code>(prn VALUE)</code>: Print a value to the console</li>
+            <li><code>(input STRING)</code>: Get input from the user</li>
+            <li><code>(load-file STRING)</code>: Loads a file and evaluates, will not work on web</li>
+            <li><code>(slurp STRING)</code>: Loads a file and returns a string, will not work on web.
+                Wins award for best named function.</li>
+            <li><code>(DATA_TYPE? VALUE)</code>: Checks if the given value is of the given type</li>
+            <li><code>(deref ATOM)</code>: Dereferences an atom, can also use <code>@ATOM</code></li>
+            <li><code>(reset! ATOM VALUE)</code>: Changes an atom's value, allowing mutability.</li>
+            <li><code>(swap! ATOM CLOSURE)</code>: Changes an atom's value to the output of the closure, which is passed
+                the atom's current value.</li>
+            <li><code>(cons VALUE LIST/VECTOR)</code>: Adds the value to the list/vector at the front</li>
+            <li><code>(concat LIST/VECTOR & VALUES)</code>: Adds the values to the list/vector at the back</li>
+            <li><code>(nth LIST/VECTOR INTEGER)</code>: Gets the nth value of a list/vector</li>
+            <li><code>(count LIST/VECTOR)</code>: Gets the number of items in a list/vector</li>
+            <li><code>(first LIST/VECTOR)</code>: Gets the first value of a list/vector</li>
+            <li><code>(rest LIST/VECTOR)</code>: Gets all values but the first of a list/vector</li>
+            <li><code>(apply CLOSURE/NATIVEFUNCTION & ARGS)</code>: Applies the function to the rest of the args</li>
+            <li><code>(map CLOSURE/NATIVEFUNCTION LIST/VECTOR)</code>: Applies the function to all elements in a
+                list/vector</li>
+            <li><code>(assoc DICT KEY VALUE KEY VALUE ...)</code>: Adds keys and values to dictionary</li>
+            <li><code>(dissoc DICT & KEYS)</code>: Removes keys from dictionary</li>
+            <li><code>(get DICT KEY)</code>: Get a value from a dictionary by key</li>
+            <li><code>(contains DICT KEY)</code>: Check if a dictionary contains a key</li>
+            <li><code>(keys DICT)</code>: Returns a list of all the keys in a dictionary</li>
+            <li><code>(values DICT)</code>: Returns a list of all the values in a dictionary</li>
+        </ul>
+        <h3>More Control Flow</h3>
+        <p>
+            This language also has try/catch/throw functionality:
+        </p>
+        <p class="codeblock">
+            => (try* (throw "whoops") (fn* (error) (prn error)))<br>
+            whoops<br>
+        </p>
+        <p>
+            The <code>let*</code> special form lets you temporarily set variables
+        </p>
+        <p class="codeblock">
+            => (let* (c 3) (+ c 1))<br>
+            4<br>
+        </p>
+        <p>
+            The <code>do</code> special form lets you run multiple blocks of code, only returning the last one.
+        </p>
+        <p class="codeblock">
+            => (do 1 2 (prn "hello") 3 4)<br>
+            hello<br>
+            4<br>
+        </p>
+        <h3>Macros and Metaprogramming</h3>
+        <p>Now for the fun part.</p>
+        <ul>
+            <li><code>(read-string STRING)</code>: Parses a string into an unevaluated AST list</li>
+            <li><code>(symbol STRING)</code>: Creates a new symbol from a string</li>
+            <li><code>(quote VALUE)</code>: Return a value without evaluating it</li>
+            <li><code>(quasiquote LIST)</code>: Return a list of values without evaluating them</li>
+            <li><code>(unquote VALUE)</code>: Evaluates a value in a quasiquote. Will not work outside quasiquote.</li>
+            <li><code>(splice-unquote LIST)</code>: Evaluates a list in a quasiquote and splices it into the main list.
+                Will not work outside quasiquote.</li>
+            <li><code>(eval VALUE)</code>: Evaluate a given value. Will operate in the global environment.</li>
+            <li><code>(defmacro! SYMBOL CLOSURE)</code>: Create a closure that will not evaluate its arguments before
+                executing.</li>
+        </ul>
+        <br>
+        <br>
+        <p>...and thats all there is to it! Enjoy!</p>
     </div>
 </body>
 
