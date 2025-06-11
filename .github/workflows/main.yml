@@ -8,7 +8,8 @@ jobs:
         with:
           cache-all-crates: true
       - run: cargo install wasm-pack
-      - run: wasm-pack build --target web ./bracketlang_backend
+      - run: wasm-pack build --target web ${{ github.workspace }}/bracketlang_backend
+        working-directory: ${{ github.workspace }}
       - run: cp ./bracketlang_backend/pkg/bracketlang_backend.js ./web_frontend/pkg/bracketlang_backend.js
       - run: cp -r ./bracketlang_backend/pkg/snippets ./web_frontend/pkg/snippets
       - run: cp ./bracketlang_backend/pkg/bracketlang_backend_bg.wasm ./web_frontend/pkg/bracketlang_backend_bg.wasm
