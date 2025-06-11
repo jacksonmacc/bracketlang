@@ -4,6 +4,9 @@ jobs:
   Build-Site:
     runs-on: ubuntu-latest
     steps:
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: true
       - run: cargo install wasm-pack
       - run: wasm-pack build --target web ./bracketlang_backend
       - run: cp ./bracketlang_backend/pkg/bracketlang_backend.js ./web_frontend/pkg/bracketlang_backend.js
