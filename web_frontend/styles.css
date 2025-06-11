@@ -8,6 +8,18 @@
     src: url("./fonts/Roboto_Mono/RobotoMono-VariableFont_wght.ttf");
 }
 
+a {
+    color: rgb(180, 180, 255);
+}
+
+a:visited {
+    color: rgb(180, 180, 255);
+}
+
+footer {
+    margin-bottom: 5vh;
+}
+
 body {
     color: white;
     background-color: black;
