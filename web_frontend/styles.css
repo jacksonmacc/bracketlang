@@ -49,7 +49,7 @@ code {
 
 #bl-out {
     overflow-y: scroll;
-    height: 50vh;
+    height: 25em;
     display: flex;
     flex-direction: column-reverse;
 }
