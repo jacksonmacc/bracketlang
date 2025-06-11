@@ -49,6 +49,12 @@ impl EnvironmentHolder {
 #[wasm_bindgen(module = "/helper_functions.js")]
 extern "C" {
     pub fn js_print(string: &str);
+    pub fn js_get_time() -> i32;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    pub fn prompt(string: &str) -> String;
 }
 
 #[wasm_bindgen]
@@ -175,7 +181,9 @@ pub fn create_default_repl_env() -> Rc<RefCell<Environment>> {
         CHECK_FLOAT,
         CHECK_FN,
         CHECK_MACRO,
-        TIME_MS
+        TIME_MS,
+        INPUT,
+        MODULO
     );
 
     Rc::new(RefCell::new(repl_env))

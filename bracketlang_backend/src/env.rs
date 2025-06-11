@@ -2,14 +2,15 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs;
 use std::rc::Rc;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::evaluator::RuntimeError;
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::read;
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::{SystemTime, UNIX_EPOCH};
 #[cfg(target_arch = "wasm32")]
-use crate::{js_print, read};
+use crate::{js_print, prompt, read};
 
 use crate::variable_type::DataType;
 use crate::variable_type::DataType::*;
@@ -48,6 +49,25 @@ pub const ADDITION: CoreFunction = CoreFunction {
         } else {
             Err(RuntimeError {
                 msg: "Incorrect number of arguments for addition".to_string(),
+            })
+        }
+    },
+};
+
+pub const MODULO: CoreFunction = CoreFunction {
+    id: "%",
+    func: |values: &[DataType]| {
+        if values.len() == 2 {
+            match (values.get(0), values.get(1)) {
+                (Some(Integer(num1)), Some(Integer(num2))) => Ok(Integer(num1 % num2)),
+
+                _ => Err(RuntimeError {
+                    msg: "Incorrect types for modulo!".to_string(),
+                }),
+            }
+        } else {
+            Err(RuntimeError {
+                msg: "Incorrect number of arguments for modulo".to_string(),
             })
         }
     },
@@ -839,6 +859,7 @@ pub const VALUES: CoreFunction = CoreFunction {
     },
 };
 
+#[cfg(not(target_arch = "wasm32"))]
 pub const TIME_MS: CoreFunction = CoreFunction {
     id: "time-ms",
     func: |_values: &[DataType]| {
@@ -850,5 +871,64 @@ pub const TIME_MS: CoreFunction = CoreFunction {
                 .try_into()
                 .unwrap(),
         ))
+    },
+};
+
+#[cfg(target_arch = "wasm32")]
+pub const TIME_MS: CoreFunction = CoreFunction {
+    id: "time-ms",
+    func: |_values: &[DataType]| {
+        use crate::js_get_time;
+
+        Ok(Integer(js_get_time().into()))
+    },
+};
+
+#[cfg(not(target_arch = "wasm32"))]
+pub const INPUT: CoreFunction = CoreFunction {
+    id: "input",
+    func: |values: &[DataType]| {
+        if let Some(DataType::String(string)) = values.get(0) {
+            use std::io::{Write, stdin, stdout};
+
+            print!("{}", string);
+            stdout()
+                .flush()
+                .expect("Flushing stdout should have worked.");
+            let mut user_input = std::string::String::new();
+
+            stdin()
+                .read_line(&mut user_input)
+                .expect("Didn't enter a correct string");
+            Ok(DataType::String(user_input))
+        } else {
+            use std::io::{Write, stdin, stdout};
+
+            stdout()
+                .flush()
+                .expect("Flushing stdout should have worked.");
+            let mut user_input = std::string::String::new();
+
+            stdin()
+                .read_line(&mut user_input)
+                .expect("Didn't enter a correct string");
+            Ok(DataType::String(user_input))
+        }
+    },
+};
+
+#[cfg(target_arch = "wasm32")]
+pub const INPUT: CoreFunction = CoreFunction {
+    id: "input",
+    func: |values: &[DataType]| {
+        if let Some(DataType::String(string)) = values.get(0) {
+            let result = prompt(&string);
+
+            Ok(DataType::String(result))
+        } else {
+            let result = prompt("");
+
+            Ok(DataType::String(result))
+        }
     },
 };

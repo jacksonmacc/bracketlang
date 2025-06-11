@@ -4,13 +4,75 @@
 <head>
     <meta charset="utf-8" />
     <title>hello-wasm example</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap"
+        rel="stylesheet">
     <script src="./index.js" type="module"></script>
 </head>
 
 <body>
-    <textarea type="text" name="code" id="bl-input" autocomplete="off"></textarea>
-    <br>
-    <button id="bl-button">Run</button>
+    <div class="main-div">
+        <h1>Bracketlang</h1>
+        <p>A lisp-like interpreter for the web :)</p>
+        <div class="interpreter">
+            <div id="bl-out"></div>
+            <form id="bl-form">
+                <input type="text" name="code" id="bl-input" autocomplete="off" rows="1"></input>
+                <button id="bl-button" type="submit">Run</button>
+            </form>
+        </div>
+        <h2>How To Use</h2>
+        <h3>Basic Syntax</h3>
+        <p>
+            Lisp follows a basic syntax of (FUNCTION ARGUMENTS). For instance, if you wanted to add 2 and 3,
+            you could write <code>(+ 3 5)</code>.
+        </p>
+        <p>
+            To define a variable, you can use the <code>def!</code> function, like so:
+        </p>
+        <p class="codeblock">
+            => (def! x 3)<br>
+            3<br>
+            => x<br>
+            3<br>
+        </p>
+        <p>
+            For control flow, there is an if statment with the syntax <code>(if CONDITION TRUE_PATH FALSE_PATH)</code>.
+        </p>
+        <p class="codeblock">
+            => (if true "hello" "world")<br>
+            "hello"<br>
+            => (if false "hello" "world")<br>
+            "world"<br>
+        </p>
+        <p>
+            For creating functions, you can use <code>fn*</code>:
+        </p>
+        <p class="codeblock">
+            => (def! addone (fn* (x) (+ x 1)))<br>
+            Closure(0x?????)<br>
+            => (addone 3)<br>
+            4<br>
+        </p>
+        <p>For creating loops... don't. Use recursion instead.</p>
+        <h3>Data Types</h3>
+        <ul>
+            <li>List: A list of other data types, expects the first element to be a function if evaluating directly.</li>
+            <li>String</li>
+            <li>Integer</li>
+            <li>Float</li>
+            <li>Bool (<code>true</code>/<code>false</code>)</li>
+            <li>Nil (<code>nil</code>)</li>
+            <li>Vector (<code>[1 2 3]</code>)</li>
+            <li>Dictionary (<code>{"key1" "value1" "key2" 2}</code>)</li>
+            <li>Atom: Allows references and mutability (<code>(atom 3)</code>)</li>
+            <li>Closure</li>
+        </ul>
+    </div>
 </body>
 
 </html>
