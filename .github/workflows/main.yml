@@ -8,7 +8,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-all-crates: true
-      - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - run: cargo install wasm-pack
       - run: wasm-pack build --target web ./bracketlang_backend
       - run: mkdir ./web_frontend/pkg/
       - run: mkdir ./web_frontend/pkg/snippets
