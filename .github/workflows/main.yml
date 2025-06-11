@@ -8,7 +8,7 @@ jobs:
         with:
           version: 'latest'
       - run: ls
-      - run: wasm-pack build --target web bracketlang_backend
+      - run: wasm-pack build --target web ./bracketlang_backend
       - run: cp ./bracketlang_backend/pkg/bracketlang_backend.js ./web_frontend/pkg/bracketlang_backend.js
       - run: cp -r ./bracketlang_backend/pkg/snippets ./web_frontend/pkg/snippets
       - run: cp ./bracketlang_backend/pkg/bracketlang_backend_bg.wasm ./web_frontend/pkg/bracketlang_backend_bg.wasm
