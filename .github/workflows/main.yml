@@ -4,16 +4,14 @@ jobs:
   Build-Site:
     runs-on: ubuntu-latest
     steps:
-      - uses: jetli/wasm-pack-action@v0.4.0
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
         with:
-          version: 'latest'
-      - name: Print Folder Tree
-        uses: jaywcjlove/github-action-folder-tree@main
-        with:
-          exclude: "node_modules|dist|.git|.husky"
-          path: ./src
-          depth: 2
+          cache-all-crates: true
+      - run: cargo install wasm-pack
       - run: wasm-pack build --target web ./bracketlang_backend
+      - run: mkdir ./web_frontend/pkg/
+      - run: mkdir ./web_frontend/pkg/snippets
       - run: cp ./bracketlang_backend/pkg/bracketlang_backend.js ./web_frontend/pkg/bracketlang_backend.js
       - run: cp -r ./bracketlang_backend/pkg/snippets ./web_frontend/pkg/snippets
       - run: cp ./bracketlang_backend/pkg/bracketlang_backend_bg.wasm ./web_frontend/pkg/bracketlang_backend_bg.wasm
