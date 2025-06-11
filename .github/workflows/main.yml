@@ -16,6 +16,7 @@ jobs:
       - run: cp -r ./bracketlang_backend/pkg/snippets ./web_frontend/pkg/snippets
       - run: cp ./bracketlang_backend/pkg/bracketlang_backend_bg.wasm ./web_frontend/pkg/bracketlang_backend_bg.wasm
       - uses: actions/upload-pages-artifact@v3 
+        id: deployment
         with:
           path: web_frontend
   Publish-Site:
