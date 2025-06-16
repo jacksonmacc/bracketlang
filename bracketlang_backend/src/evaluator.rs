@@ -237,7 +237,6 @@ fn eval_try(
     env: Rc<RefCell<Environment>>,
     repl_env: Rc<RefCell<Environment>>,
 ) -> Result<DataType, RuntimeError> {
-    println!("{:?}", (args.get(0), args.get(1)));
     if let (Some(ast), Some(closure)) = (args.get(0), args.get(1)) {
         let Ok(DataType::Closure(closure)) = eval(closure, env.clone(), repl_env.clone()) else {
             return Err(RuntimeError {

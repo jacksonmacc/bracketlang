@@ -1,2 +1,2 @@
-(defmacro! unless (fn* (pred a b) `(if ~pred ~b ~a)))
-(prn (unless false 7 8))
+(defmacro! makelist (fn* (x) (list x)))
+(makelist (3 + 2))

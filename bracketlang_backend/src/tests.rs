@@ -490,3 +490,16 @@ fn test_macros() {
         panic!();
     }
 }
+
+#[test]
+fn test_macros_2() {
+    let env = create_default_repl_env();
+    let _ = run_line("(defmacro! makelist (fn* (x) x))", env.clone());
+    let result = run_line("(makelist (+ 2 3))", env.clone());
+
+    if let DataType::Integer(int) = result {
+	assert_eq!(int, 5);
+    } else {
+        panic!();
+    }
+}
