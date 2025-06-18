@@ -929,12 +929,17 @@ pub const INPUT: CoreFunction = CoreFunction {
     func: |values: &[DataType]| {
         if let Some(DataType::String(string)) = values.get(0) {
             let result = prompt(&string);
-
-            Ok(DataType::String(result))
+            match result {
+                Some(res) => Ok(DataType::String(res)),
+                None => Ok(DataType::String("".to_string())),
+            }
         } else {
             let result = prompt("");
 
-            Ok(DataType::String(result))
+            match result {
+                Some(res) => Ok(DataType::String(res)),
+                None => Ok(DataType::String("".to_string())),
+            }
         }
     },
 };

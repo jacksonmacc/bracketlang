@@ -54,7 +54,7 @@ extern "C" {
 
 #[wasm_bindgen]
 extern "C" {
-    pub fn prompt(string: &str) -> String;
+    pub fn prompt(string: &str) -> Option<String>;
 }
 
 #[wasm_bindgen]
