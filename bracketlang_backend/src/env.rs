@@ -120,6 +120,14 @@ pub const DIVISION: CoreFunction = CoreFunction {
     func: |values: &[DataType]| {
         if values.len() == 2 {
             match (values.get(0), values.get(1)) {
+                (Some(Integer(_)), Some(Integer(0))) => Err(RuntimeError {
+                    msg: "Divide by zero error!".to_string(),
+                }),
+
+                (Some(Float(_)), Some(Float(0.0))) => Err(RuntimeError {
+                    msg: "Divide by zero error!".to_string(),
+                }),
+
                 (Some(Integer(num1)), Some(Integer(num2))) => Ok(Integer(num1 / num2)),
 
                 (Some(Float(num1)), Some(Float(num2))) => Ok(Float(num1 / num2)),
