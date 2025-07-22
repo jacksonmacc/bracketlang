@@ -103,12 +103,8 @@ a:hover {
         padding: 0;
         align-self: center;
     }
-
+    
     #footer {
-        display: flex;
-        gap: 2%;
-        background-color: hsl(var(--theme-hue), 5%, 10%);
-        margin-top: 0;
         padding: 10px 10px;
     }
 
