@@ -1,0 +1,145 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
+
+:root {
+    --theme-hue: 215;
+}
+
+body {
+    background-color: hsl(var(--theme-hue), 10%, 15%);
+    color: white;
+    margin: 0;
+    font-family: 'Noto Sans';
+    font-size: 10.5pt;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+a {
+    color: hsl(var(--theme-hue), 90%, 90%);
+}
+
+a:hover {
+    color: hsl(var(--theme-hue), 20%, 80%);
+}
+
+#header {
+    display: flex;
+    gap: 2%;
+    width: 60%;
+    margin-left: auto;
+    margin-right: auto;
+    align-items: baseline;
+    background-color: hsl(var(--theme-hue), 25%, 30%);
+    margin-top: 0;
+    padding: 0.5% 10%;
+    border-radius: 0 0 10px 10px;
+}
+
+#header h1 {
+    margin-top: .5%;
+    margin-bottom: .5%;
+    font-size: 18pt;
+}
+
+#header h1 a {
+    color: white;
+    text-decoration: none;
+}
+
+#header h1 a:hover {
+    color: rgb(220, 220, 220);
+    text-decoration: none;
+}
+
+#header a {
+    text-decoration: none;
+}
+
+#content {
+    padding: 1% 10%;
+    width: 60%;
+    margin-left: auto;
+    margin-right: auto;
+    flex-grow: 1;
+}
+
+#footer {
+    display: flex;
+    gap: 2%;
+    background-color: hsl(var(--theme-hue), 5%, 10%);
+    margin-top: 0;
+    padding: 10px 20%;
+}
+
+code {
+    font-family: monospace;
+    font-size: 10pt;
+    background-color: rgb(19, 19, 19);
+    border-radius: 0.5vh;
+    padding: 2px;
+}
+
+.codeblock {
+    font-family: monospace;
+    font-size: 10pt;
+    width: 90%;
+    background-color: rgb(19, 19, 19);
+    border-radius: 0.5vh;
+    padding: 1vh;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#bl-out {
+    overflow-y: scroll;
+    height: 25em;
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+.interpreter {
+    font-family: monospace;
+    font-size: 11pt;
+    width: 60%;
+    margin-top: 5vh;
+    margin-bottom: 5vh;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2vh;
+    border: 0.5vh solid white;
+    border-radius: 1vh;
+}
+
+#bl-out {
+    width: 100%;
+    padding: 1vh;
+}
+
+#bl-out p {
+    width: 100%;
+}
+
+#bl-form {
+    margin-top: 1vh;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+}
+
+#bl-form input {
+    flex: 1 1 auto;
+}
+
+.console-prompt {
+    margin-bottom: 2px;
+}
+
+.console-response {
+    margin-top: 2px;
+    margin-bottom: 2px;
+}

@@ -1,15 +1,24 @@
-<!doctype html>
-<html lang="en-US">
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bracketlang</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="style.css">
+    <script>
+        let r = document.querySelector(":root");
+        r.style.setProperty("--theme-hue", Math.random() * 255)
+    </script>
     <script src="./index.js" type="module"></script>
 </head>
 
 <body>
-    <div class="main-div">
+    <header id="header">
+        <h1><a href="/index.html">Jackson MacCormick</a></h1>
+        <a href="https://github.com/jacksonmacc">GitHub</a>
+    </header>
+    <div id="content">
         <h1>Bracketlang</h1>
         <p>A lisp-like interpreter for the web :)</p>
         <div class="interpreter">
@@ -150,12 +159,11 @@
         <br>
         <br>
         <p>...and thats all there is to it! Enjoy!</p>
-        <footer>
-            <hr>
-            <a href="https://github.com/jacksonmacc/bracketlang">Source Code</a> | <a
-                href="https://github.com/kanaka/mal">Very Helpful Reference</a>
-        </footer>
     </div>
+    <footer id="footer">
+        <a href="https://github.com/jacksonmacc/bracketlang">Source Code</a>|<a href="#top">Back To Top</a>
+    </footer>
+
 </body>
 
 </html>
