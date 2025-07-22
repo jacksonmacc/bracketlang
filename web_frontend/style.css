@@ -72,6 +72,51 @@ a:hover {
     padding: 10px 20%;
 }
 
+.interpreter {
+    font-family: monospace;
+    font-size: 11pt;
+    width: 60%;
+    margin-top: 5vh;
+    margin-bottom: 5vh;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2vh;
+    border: 0.5vh solid white;
+    border-radius: 1vh;
+}
+
+@media screen and (max-width: 480px) {
+    #header {
+        width: 100%;
+        padding: 0;
+        margin-left: 0;
+        margin-right: 0;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #content {
+        width: 90%;
+        padding: 0;
+        align-self: center;
+    }
+
+    #footer {
+        display: flex;
+        gap: 2%;
+        background-color: hsl(var(--theme-hue), 5%, 10%);
+        margin-top: 0;
+        padding: 10px 10px;
+    }
+
+    .interpreter {
+        width: 80%;
+    }
+}
+
 code {
     font-family: monospace;
     font-size: 10pt;
@@ -98,21 +143,6 @@ code {
     flex-direction: column-reverse;
 }
 
-.interpreter {
-    font-family: monospace;
-    font-size: 11pt;
-    width: 60%;
-    margin-top: 5vh;
-    margin-bottom: 5vh;
-    margin-left: auto;
-    margin-right: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2vh;
-    border: 0.5vh solid white;
-    border-radius: 1vh;
-}
 
 #bl-out {
     width: 100%;
