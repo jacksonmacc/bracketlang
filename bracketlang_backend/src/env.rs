@@ -643,7 +643,7 @@ pub const MAP: CoreFunction = CoreFunction {
     id: "map",
     func: |values: &[DataType]| {
         if let (Some(Closure(closure)), Some(List(list) | Vector(list))) =
-            (values.get(0), values.get(0))
+            (values.get(0), values.get(1))
         {
             let mut result = vec![];
             for val in list {
@@ -651,7 +651,7 @@ pub const MAP: CoreFunction = CoreFunction {
             }
             Ok(DataType::List(result))
         } else if let (Some(NativeFunction(closure)), Some(List(list) | Vector(list))) =
-            (values.get(0), values.get(0))
+            (values.get(0), values.get(1))
         {
             let mut result = vec![];
             for val in list {
@@ -660,7 +660,7 @@ pub const MAP: CoreFunction = CoreFunction {
             Ok(DataType::List(result))
         } else {
             return Err(RuntimeError {
-                msg: "Wrong arguments for apply".to_string(),
+                msg: "Wrong arguments for map".to_string(),
             });
         }
     },
